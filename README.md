@@ -25,7 +25,7 @@ cargo build --locked -p c5isr-server
 .\target\debug\c5isr-server.exe
 ```
 
-打开 **http://127.0.0.1:8787**，按 `Ctrl+C` 停止服务。前端由 Rust 服务托管，无需另开 Vite。服务仅监听本机地址；默认使用规则基线，未主动开启模型研判或 AI 信息自治时不会消耗模型用量。
+打开 [http://127.0.0.1:8787](http://127.0.0.1:8787)，按 `Ctrl+C` 停止服务。前端由 Rust 服务托管，无需另开 Vite。服务仅监听本机地址；默认使用规则基线，未主动开启模型研判或 AI 信息自治时不会消耗模型用量。
 
 Linux/macOS 在安装依赖并执行 `pnpm build` 后，可用 `cargo run --locked -p c5isr-server` 构建并启动。当前实际验证平台为 Windows，其他平台尚未做运行验收。
 
@@ -106,7 +106,7 @@ cargo run -p c5isr-server
 pnpm dev
 ```
 
-Vite 开发地址为 http://127.0.0.1:5173，`/api` 代理到 8787。生产构建由 Rust 服务直接托管，不依赖 Vite 进程。
+Vite 开发地址为 [http://127.0.0.1:5173](http://127.0.0.1:5173)，`/api` 代理到 8787。生产构建由 Rust 服务直接托管，不依赖 Vite 进程。
 
 ```powershell
 . .\scripts\rust-env.ps1

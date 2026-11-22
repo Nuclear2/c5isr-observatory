@@ -126,6 +126,23 @@ jobs:
             $both = 'relay-proposal-00003,obs-000013'
             if ($rule[0].desk_judgment.finding -ne 'conflict' -or ($rule[0].desk_judgment.evidence_ids -join ',') -ne $both) { throw 'Expected conflict between relay and supplement' }
             if ($human[0].desk_judgment.finding -ne 'gap' -or ($human[0].desk_judgment.read_ids -join ',') -ne $both -or ($human[0].desk_judgment.evidence_ids -join ',') -ne 'obs-000013') { throw 'Expected both reports read and only the supplement cited by the reviewer' }
+            $studies = $archive.strategy_studies
+            if ((($studies.delivery | Sort-Object) -join ',') -ne 'delayed,lost,normal') { throw 'Expected three distinct strategy replays' }
+            foreach ($study in $studies) {
+              if ($study.case_id -ne $rule[0].proposal_id -or $study.fork_seq -ne $rule[0].seq -or $study.fork_tick -ne 12 -or $study.end_tick -ne 30 -or $study.frames.Count -ne 19) { throw 'Strategy replay does not cover the recorded T+12 conflict through T+30' }
+              $score = $study.settlement.verify
+              $final = $study.frames[-1].verify
+              $reply = @($final.reports | Where-Object kind -eq 'verification')
+              if ($score.verification_requests -ne 1) { throw 'Expected one independent verification request' }
+              if ($study.delivery -eq 'lost') {
+                if ($reply.Count -ne 0 -or $null -ne $score.decision_tick -or $score.unresolved -ne 1 -or $score.wait_ticks -ne 18) { throw 'Undelivered verification must stay unresolved through T+30' }
+              } else {
+                $receiptTick = if ($study.delivery -eq 'normal') { 15 } else { 24 }
+                $readingTick = $receiptTick + 3
+                if ($reply.Count -ne 1 -or $reply[0].received_tick -ne $receiptTick -or $reply[0].read_tick -ne $readingTick -or $score.decision_tick -ne $readingTick -or $score.unresolved -ne 0 -or $score.wait_ticks -ne ($readingTick - 12)) { throw "Unexpected receipt, reading or settlement in $($study.delivery) replay" }
+                if (($final.decisions[-1].evidence_ids -join ',') -ne $reply[0].id) { throw 'Final judgment must cite the independent verification' }
+              }
+            }
             $lab = Invoke-RestMethod "$base/examples/evidence-review.json" -TimeoutSec 5
             if ($lab.kind -ne 'c5isr-evidence-lab' -or $lab.immediate.frames.Count -ne 49 -or $lab.review.frames.Count -ne 49 -or $lab.batch.Count -ne 8) { throw 'Unexpected evidence replay data in extracted ZIP' }
           } finally {
@@ -182,8 +199,9 @@ jobs:
           下载 \`$zip\`，全部解压后双击 \`C5ISR-Observatory.exe\`。浏览器会打开本机 **T+8 · 双节点对照** 回放。回放可离线运行，无需安装 Node.js、Rust 或登录账号。
 
           1. 点一次 **下一历史帧** 到 T+9，切到 **审核席**。现场补报 \`obs-000013\` 已经送达，仍标为“待阅”。
-          2. 再点三次到 T+12。转述记录“采样连续”，现场补报记录“采样有缺口”。规则判断引用了两份报告，结论为“证据冲突，待核实”。
-          3. 展开 **#17 · 人工判断**。现场补报 \`obs-000013\` 标为“实际引用”，转述 \`relay-proposal-00003\` 标为“已读未引用”。
+          2. 再点三次到 T+12。转述与补报的说法发生冲突。展开 **人工判断** 可以看到审核席读过两份报告，实际引用了现场补报。
+          3. 在 **核验回报条件** 中选择 **常规送达**、**延迟送达** 或 **未送达**，点 **从此次冲突比较策略**。左右两席共用现场记录与故障时间线，可以逐步对照立即判断和请求独立核验各自读过、引用的报告。
+          4. 点 **到结算步**，再点 **揭示现场底稿并结算**，核对误判、未决、等待步数与核验次数。
 
           **ZIP SHA-256** \`$digest\`
           EOF

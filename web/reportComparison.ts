@@ -1,4 +1,4 @@
-import type { DecisionEvent, Frame, ReportVersion } from '../contracts/state';
+import type { DecisionEvent, Frame, LinkChange, ReportVersion } from '../contracts/state';
 import { eventsAtFrame } from './decisions.ts';
 
 export interface ReportSeries {
@@ -44,17 +44,12 @@ export function reportSeriesAtFrame(
     || b.versions[0].sampled_tick - a.versions[0].sampled_tick);
 }
 
-export type MilestoneKind = 'offline' | 'offline_at_start' | 'restored' | 'sample' | 'field' | 'buffered' | 'sent' | 'center' | 'dropped' | 'expired';
-interface Milestone { kind: MilestoneKind; tick: number }
+export type MilestoneKind = 'offline' | 'offline_at_start' | 'restored' | 'degraded' | 'profile_restored' | 'repaired'
+  | 'sample' | 'field' | 'buffered' | 'sent' | 'center' | 'dropped' | 'expired';
+interface Milestone { kind: MilestoneKind; tick: number; seq?: number }
 
-export function reportMilestones(
-  report: ReportVersion, frame: Frame, history: readonly Frame[], log: readonly DecisionEvent[] | undefined,
-): Milestone[] {
-  if (report.sampled_tick > frame.tick) return [];
+function legacyLinkMilestones(report: ReportVersion, frame: Frame, history: readonly Frame[], closedAt: number | null): Milestone[] {
   const timeline: Milestone[] = [];
-  const transport = eventsAtFrame(log, frame).filter(e => e.report_id === report.report_id && e.proposal_id === report.proposal_id);
-  // Link history is independent of report receipts. Reconnection alone never confirms delivery.
-  const closedAt = transport.find(e => e.kind === 'dropped' || e.kind === 'expired')?.tick ?? report.center_received_tick;
   let priorEnabled: boolean | undefined;
   let offlineAt: Milestone | null = null;
   for (const item of history) {
@@ -71,13 +66,70 @@ export function reportMilestones(
     }
     priorEnabled = enabled;
   }
+  return timeline;
+}
+
+function changeKind(change: LinkChange): MilestoneKind {
+  if (change.cause === 'restore_link') return 'repaired';
+  if (change.before.enabled !== change.after.enabled) return change.after.enabled ? 'restored' : 'offline';
+  return change.cause === 'link_loss' ? 'degraded' : 'profile_restored';
+}
+
+function recordedLinkMilestones(
+  report: ReportVersion, frame: Frame, history: readonly Frame[], closedAt: number | null, closedSeq?: number,
+): Milestone[] {
+  const timeline: Milestone[] = [];
+  // Initial editions reached both desks during setup, before the first experimental command.
+  if (report.proposal_id === null) return timeline;
+  let activeOutage: Milestone | undefined;
+  for (const item of history) {
+    if (item.tick > frame.tick || (closedAt !== null && item.tick > closedAt)) break;
+    const link = item.links.find(l => l.from === report.source_id && l.to === 'command');
+    if (!link) continue;
+    const changes = item.link_changes!.filter(c => c.link_id === link.id);
+    if (item === history[0] && !(changes[0]?.before.enabled ?? link.enabled)) {
+      activeOutage = { kind: 'offline_at_start', tick: item.tick };
+    }
+    if (item.tick >= report.sampled_tick && activeOutage) {
+      timeline.push(activeOutage);
+      activeOutage = undefined;
+    }
+    for (const change of changes) {
+      if (change.seq > frame.decision_seq! || (item.tick === closedAt && (closedSeq === undefined || change.seq > closedSeq))) break;
+      const moment = { kind: changeKind(change), tick: item.tick, seq: change.seq };
+      if (item.tick >= report.sampled_tick) timeline.push(moment);
+      else activeOutage = change.after.enabled ? undefined : moment;
+    }
+  }
+  return timeline;
+}
+
+export function reportMilestones(
+  report: ReportVersion, frame: Frame, history: readonly Frame[], log: readonly DecisionEvent[] | undefined,
+): Milestone[] {
+  if (report.sampled_tick > frame.tick) return [];
+  const entries = log?.filter(e => e.report_id === report.report_id && e.proposal_id === report.proposal_id);
+  const transport = eventsAtFrame(entries, frame);
+  const terminal = transport.find(e => e.kind === 'dropped' || e.kind === 'expired' || e.kind === 'received');
+  // If a same-tick receipt has a sequence, a smaller cursor still sees the report in transit.
+  // Retained older editions can lack the transport group and still have a valid receipt tick.
+  const receipt = entries?.find(e => e.kind === 'received');
+  const centerTick = !receipt || terminal?.kind === 'received' ? report.center_received_tick : null;
+  const closedAt = terminal?.tick ?? centerTick;
+  const recorded = history[0]?.link_changes !== undefined;
+  const timeline = recorded ? recordedLinkMilestones(report, frame, history, closedAt, terminal?.seq)
+    : legacyLinkMilestones(report, frame, history, closedAt);
   timeline.push({ kind: 'sample', tick: report.sampled_tick });
   for (const event of transport) {
     if (event.kind === 'buffered' || event.kind === 'sent' || event.kind === 'dropped' || event.kind === 'expired') {
-      timeline.push({ kind: event.kind, tick: event.tick });
+      timeline.push({ kind: event.kind, tick: event.tick, ...(recorded && { seq: event.seq }) });
     }
   }
   if (report.field_received_tick !== null && report.field_received_tick <= frame.tick) timeline.push({ kind: 'field', tick: report.field_received_tick });
-  if (report.center_received_tick !== null && report.center_received_tick <= frame.tick) timeline.push({ kind: 'center', tick: report.center_received_tick });
-  return timeline.sort((a, b) => a.tick - b.tick);
+  if (centerTick !== null && centerTick <= frame.tick) {
+    timeline.push({ kind: 'center', tick: centerTick, ...(recorded && terminal?.kind === 'received' && { seq: terminal.seq }) });
+  }
+  // Tick-only facts are marked separately in the view. A global sequence orders all
+  // retained link changes and transport events, even when the frame ends back online.
+  return timeline.sort((a, b) => a.tick - b.tick || (a.seq ?? 0) - (b.seq ?? 0));
 }

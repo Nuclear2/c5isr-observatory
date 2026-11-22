@@ -5,6 +5,7 @@ import { DecisionCutoff } from './DecisionPanel';
 import { decisionKindNames, eventsAtFrame } from './decisions';
 import { reviewCases } from './liveReviewDesk';
 import type { DeskEntry, FrozenJudgment, ReviewCase } from './liveReviewDesk';
+import { StrategyEntry, type StudyAccess } from './StrategyStudyPanel';
 import './live-review-desk.css';
 
 const at = (t: number) => `T+${t}`;
@@ -61,9 +62,9 @@ function ManualJudgment({ item, submit, disabled }: { item: ReviewCase; submit: 
   </fieldset>;
 }
 
-export default function LiveReviewDesk({ log, frame, version, historical, cursor, onCursorChange, onSubmit, disabled = true }: {
+export default function LiveReviewDesk({ log, frame, version, historical, cursor, onCursorChange, onSubmit, strategy, disabled = true }: {
   log?: DecisionEvent[]; frame: Frame; version?: 1; historical: boolean;
-  cursor: number | null; onCursorChange: (seq: number | null) => void; onSubmit?: Submit; disabled?: boolean;
+  cursor: number | null; onCursorChange: (seq: number | null) => void; onSubmit?: Submit; strategy?: StudyAccess; disabled?: boolean;
 }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   if (version !== 1 || !log || frame.decision_seq === undefined) {
@@ -73,6 +74,7 @@ export default function LiveReviewDesk({ log, frame, version, historical, cursor
   const cutoff = historical ? cursor : null;
   const cases = reviewCases(cutoff === null ? frameEvents : frameEvents.filter(event => event.seq <= cutoff));
   const item = cases.find(candidate => candidate.id === selectedId) ?? cases[0];
+  const fork = item?.judgments.find(j => j.judgment.actor === 'rule' && j.judgment.finding === 'conflict');
   const read = item?.entries.filter(e => e.readTick !== null) ?? [];
   const findings = new Set(read.map(e => e.report.claim));
   const conflict = findings.size > 1;
@@ -89,6 +91,7 @@ export default function LiveReviewDesk({ log, frame, version, historical, cursor
         <span className={conflict ? 'desk-conflict' : 'desk-read'}>{conflict ? '已读证据冲突' : !read.length ? '等待阅读' : read.length === 1 ? '单份报告 · 暂定' : '已读报告一致'}</span>
       </div>
       {item.transport && <p className="desk-footnote">补报传输 · {decisionKindNames[item.transport.kind]} {at(item.transport.tick)}</p>}
+      {fork && strategy && <StrategyEntry key={`${item.id}-${fork.seq}`} access={strategy} caseId={item.id} seq={fork.seq} />}
       <h4>审核席收件箱 <small>已读 {read.length} / 已收 {item.entries.length}</small></h4>
       <ul className="desk-inbox">{item.entries.map(entry => <ReportRow key={entry.report.id} entry={entry} />)}</ul>
       <h4><BookOpen size={14} />判断记录 <small>{item.judgments.length} 条</small></h4>

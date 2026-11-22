@@ -28,6 +28,39 @@ test('reader accepts older own-view exports without fabricating decision cutoffs
   assert.throws(() => parseArchive(archive([frame(3, 1)], undefined)));
 });
 
+test('link transitions survive an online frame ending and a clipped left edge, with one cursor shared with reports', () => {
+  const up = { enabled: true, latency_ticks: 2, quality: 0.93 };
+  const down = { enabled: false, latency_ticks: 9, quality: 0.08 };
+  const link = { id: 'link-a', from: 'node-a', to: 'command', ...up };
+  const earlier = { ...frame(5, 7), links: [link], link_changes: [] };
+  const later = { ...frame(6, 12), links: [link], link_changes: [
+    { seq: 8, link_id: link.id, cause: 'link_loss', before: up, after: down },
+    { seq: 10, link_id: link.id, cause: 'recover', before: down, after: up },
+  ] };
+  const log = [event(7, 4), event(9, 6), event(12, 6)];
+  for (const frames of [[earlier, later], [later]]) {
+    assert.deepEqual(parseArchive(archive(frames, log)).history.at(-1).link_changes, later.link_changes);
+  }
+  for (const corrupt of [
+    f => { f.link_changes.reverse(); },
+    f => { f.link_changes[0].seq = 7; },
+    f => { f.link_changes[0].seq = 9; },
+    f => { f.link_changes[1].seq = 13; },
+    f => { f.link_changes[0].link_id = 'other'; },
+    f => { f.link_changes[0].before.quality = .8; },
+    f => { f.link_changes[1].before.quality = .8; },
+    f => { f.link_changes[1].after.enabled = false; },
+    f => { f.link_changes[1].after.latency_ticks = 0; },
+    f => { f.link_changes[1].cause = 'unknown'; },
+    f => { delete f.link_changes; },
+  ]) {
+    // Clone through JSON so the end profile and individual transitions are independent records.
+    const f = JSON.parse(JSON.stringify(later));
+    corrupt(f);
+    assert.throws(() => parseArchive(archive([earlier, f], log)));
+  }
+});
+
 test('archive distinguishes a missing comparison ledger from an observed but undelivered edition', () => {
   const own = { id: 'station', name: '现场节点', type_label: '信息节点', model_label: 'SIM', role: '记录',
     affiliation: 'PLA', side: 'blue', domain: 'ground', connection: 'online', conceptual: true, x: 1, y: 1, readiness: 1 };
@@ -81,6 +114,7 @@ test('desk audit keeps received headers, read bodies and cited subsets with thei
   assert.deepEqual(c.finalHuman.desk_judgment.read_ids, [id, original]);
   // Old editions and groups can leave the rolling window while a newer group remains protected.
   const recording = JSON.parse(example);
+  delete recording.strategy_studies;
   const s = recording.snapshot;
   s.history = [{ ...s.history.at(-1), tick: 410 }];
   s.report_versions = s.report_versions.filter(r => r.report_id !== root_id || r.source_id !== source_id);

@@ -8,6 +8,7 @@ import './report-comparison.css';
 const at = (tick: number) => `T+${String(tick).padStart(4, '0')}`;
 const labels: Record<MilestoneKind, string> = {
   offline: '上行链路转为离线', offline_at_start: '记录起点链路已离线', restored: '上行链路恢复', sample: '报告采样', buffered: '补报暂存',
+  degraded: '故障注入，链路质量下降', profile_restored: '链路恢复故障前参数', repaired: '获批修复生效',
   sent: '向中心发出', field: '现场记录席收件', center: '汇聚中心收件', dropped: '中心传输丢失', expired: '补报过期',
 };
 
@@ -89,10 +90,12 @@ export default function ReportComparisonPanel({ versions, frame, history, log, o
     </div>
     <p className="receipt-gap">V{selected.version} · {receiptGap(selected, frame.tick)}</p>
     <h4 className="receipt-timeline-title">传递记录</h4>
+    {history[0]?.link_changes === undefined && <p className="receipt-gap">旧归档仅记录帧末链路状态，同一步内的开关次序未知。</p>}
     <ol className="receipt-timeline">{milestones.map((moment, index) => {
       const recorded = history.find(item => item.tick === moment.tick);
       return <li key={`${moment.kind}-${moment.tick}-${index}`} className={`moment-${moment.kind}`}>
-        <span>{labels[moment.kind]}</span>
+        <span>{labels[moment.kind]}{moment.seq !== undefined ? ` · #${moment.seq}`
+          : history[0]?.link_changes !== undefined && ' · 仅记步'}</span>
         {onSeek && recorded && frame.tick !== moment.tick
           ? <button onClick={() => { setSourceChoice(source.source_id); onSeek(recorded); }}
               aria-label={`回看${labels[moment.kind]} ${at(moment.tick)}`}>

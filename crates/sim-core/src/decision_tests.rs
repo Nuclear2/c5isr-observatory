@@ -432,6 +432,142 @@ fn buffered_request_recovery_preserves_sample_time_and_actual_receipt() {
 }
 
 #[test]
+fn recovery_restores_displaced_profiles_and_keeps_an_approved_repair() {
+    let mut engine = Engine::new(703);
+    let initial = engine.snapshot();
+    engine.inject("recover").unwrap();
+    assert_eq!(engine.snapshot(), initial);
+    engine.inject("sensor_noise").unwrap();
+    assert!(engine.noisy_until > engine.current().tick);
+    engine.inject("recover").unwrap();
+    assert_eq!(engine.noisy_until, 0);
+    assert_eq!(
+        engine.current().events.last().unwrap().message,
+        "实验恢复：已清除观察噪声"
+    );
+    assert_eq!(engine.current().decision_log, initial.decision_log);
+    assert_eq!(engine.current().links, initial.links);
+    assert!(engine.current().history[0].link_changes.is_empty());
+
+    engine.inject("link_loss").unwrap();
+    engine.inject("link_loss").unwrap();
+    assert_eq!(engine.current().history[0].link_changes.len(), 2);
+    engine.inject("recover").unwrap();
+    assert_eq!(engine.current().links, initial.links);
+    let recovered = engine.snapshot();
+    engine.inject("recover").unwrap();
+    assert_eq!(engine.snapshot(), recovered);
+
+    engine.inject("link_loss").unwrap();
+    let repair = engine
+        .current()
+        .proposals
+        .iter()
+        .find(|p| p.action == "restore_link")
+        .unwrap()
+        .clone();
+    engine.review(&repair.id, true).unwrap();
+    engine.step();
+    engine.step();
+    let repaired = engine
+        .current()
+        .links
+        .iter()
+        .find(|l| l.id == repair.subject_id)
+        .unwrap()
+        .clone();
+    assert_eq!(
+        (repaired.enabled, repaired.quality, repaired.latency_ticks),
+        (true, 0.97, 1)
+    );
+    assert!(
+        engine
+            .current()
+            .history
+            .last()
+            .unwrap()
+            .link_changes
+            .iter()
+            .any(|c| c.cause == "restore_link" && c.link_id == repaired.id)
+    );
+    for _ in 0..2 {
+        engine.inject("recover").unwrap();
+        for actual in &engine.current().links {
+            let expected = if actual.id == repaired.id {
+                &repaired
+            } else {
+                initial.links.iter().find(|l| l.id == actual.id).unwrap()
+            };
+            assert_eq!(actual, expected);
+        }
+        engine.inject("link_loss").unwrap();
+    }
+}
+
+#[test]
+fn link_changes_and_report_events_keep_their_order_when_the_frame_ends_online() {
+    let mut engine = Engine::new(20261022);
+    engine.inject("link_loss").unwrap();
+    engine.step();
+    let request = outage_request(&engine);
+    engine.review(&request, true).unwrap();
+    while engine.current().tick < 6 {
+        engine.step();
+    }
+    engine.inject("recover").unwrap();
+    engine.step();
+    let tick = engine.current().tick;
+    engine.inject("link_loss").unwrap();
+    engine.inject("recover").unwrap();
+    let frame = engine.current().history.last().unwrap();
+    let route: Vec<_> = frame
+        .link_changes
+        .iter()
+        .filter(|c| c.link_id == "link-pla-kj700")
+        .collect();
+    assert_eq!(route.len(), 2);
+    assert_eq!(route[0].before, route[1].after);
+    assert!(route[0].before.enabled && !route[0].after.enabled);
+    let transport: Vec<_> = facts(&engine, &request)
+        .into_iter()
+        .filter(|e| e.tick == tick)
+        .collect();
+    let buffered = transport.iter().find(|e| e.kind == "buffered").unwrap().seq;
+    let sent = transport
+        .iter()
+        .find(|e| e.kind == "sent" || e.kind == "dropped")
+        .unwrap()
+        .seq;
+    assert!(
+        route[0].seq < buffered
+            && buffered < route[1].seq
+            && route[1].seq < sent
+            && sent <= frame.decision_seq
+    );
+    let recorded = frame.link_changes.clone();
+    engine.step();
+    assert!(
+        engine
+            .current()
+            .history
+            .last()
+            .unwrap()
+            .link_changes
+            .is_empty()
+    );
+    assert_eq!(
+        engine
+            .current()
+            .history
+            .iter()
+            .find(|f| f.tick == tick)
+            .unwrap()
+            .link_changes,
+        recorded
+    );
+}
+
+#[test]
 fn reinterruption_never_delivers_and_same_tick_recovery_is_bounded() {
     let mut engine = Engine::new(704);
     engine
@@ -657,8 +793,8 @@ fn window_preserves_each_desks_highest_edition_even_after_an_older_receipt_arriv
     assert!(facts(&engine, &faster).iter().any(|e| e.kind == "received"));
     assert!(facts(&engine, &lost).iter().any(|e| e.kind == "dropped"));
     assert!(facts(&engine, &delayed).is_empty());
-    // Use a fresh node status observation for the next approved task.
-    engine.inject("recover").unwrap();
+    // End the test's forced zero-quality path so a fresh observation can arrive.
+    engine.state.links[link_index].quality = 1.0;
     for _ in 0..60 {
         if engine.latest_evidence(source).is_some() {
             break;

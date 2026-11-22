@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, FileJson, History, Layers3, Network, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { parseArchive, parseArchiveData, MAX_ARCHIVE_BYTES } from './archive';
 import type { LabArchive } from '../contracts/evidence';
+import type { StrategyStudy } from '../contracts/strategy';
+import { parseStrategyStudy } from './strategyArchive';
+import { StrategyStudyPanel } from './StrategyStudyPanel';
 import { parseEvidenceArchiveData, MAX_LAB_ARCHIVE_BYTES } from './evidenceArchive';
 import EvidenceLab from './EvidenceLab';
 import DecisionPanel from './DecisionPanel';
@@ -14,6 +17,7 @@ export default function ArchiveViewer() {
   const example = new URLSearchParams(window.location.search).get('example');
   const [archive, setArchive] = useState<ReturnType<typeof parseArchive> | null>(null);
   const [evidence, setEvidence] = useState<LabArchive | null>(null);
+  const [study, setStudy] = useState<StrategyStudy | null>(null);
   const [filename, setFilename] = useState('');
   const [error, setError] = useState<string | null>(example !== null && example !== 'two-node' ? '找不到指定的回放示例。' : null);
   const [loading, setLoading] = useState(example === 'two-node');
@@ -68,6 +72,10 @@ export default function ArchiveViewer() {
         setEvidence(parseEvidenceArchiveData(data));
         return;
       }
+      if (data && typeof data === 'object' && 'kind' in data && data.kind === 'c5isr-strategy-study') {
+        setStudy(parseStrategyStudy(data));
+        return;
+      }
       const parsed = parseArchiveData(data);
       if (!parsed.history.length) throw new Error('文件没有可回放的历史帧。');
       setArchive(parsed); setFilename(file.name); seek(0); setSelected(null); setView('decisions');
@@ -99,6 +107,7 @@ export default function ArchiveViewer() {
           <div className="archive-decision-content">
             {view === 'desk' ? (
               <LiveReviewDesk version={archive.desk_review_version} log={archive.decision_log} frame={frame}
+                strategy={{ mode: 'archive', studies: archive.strategy_studies ?? [] }}
                 historical cursor={decisionCursor} onCursorChange={setDecisionCursor} />
             ) : view === 'compare' ? (
               <ReportComparison versions={archive.report_versions} frame={frame} history={archive.history} log={archive.decision_log} onSeek={target => seek(archive.history.indexOf(target))} />
@@ -107,5 +116,6 @@ export default function ArchiveViewer() {
         </aside></main>
       <section className="archive-timeline" aria-label="本地记录时间线"><button className="icon-button" disabled={index === 0} onClick={() => seek(index - 1)} aria-label="上一历史帧"><ChevronLeft size={20} /></button><label><span>T+{frame.tick} · 第 {index + 1} / {archive.history.length} 帧</span><input type="range" min="0" max={archive.history.length - 1} value={index} onChange={event => seek(Number(event.target.value))} aria-label="选择归档历史帧" disabled={archive.history.length < 2} /></label><button className="icon-button" disabled={index === archive.history.length - 1} onClick={() => seek(index + 1)} aria-label="下一历史帧"><ChevronRight size={20} /></button></section>
     </>}
+    {study && <StrategyStudyPanel study={study} onClose={() => setStudy(null)} returnLabel="返回归档页" />}
   </div>;
 }

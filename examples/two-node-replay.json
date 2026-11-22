@@ -7,7 +7,39 @@
     "tick": 12,
     "history": [
       {
-        "decision_seq": 3,
+        "decision_seq": 5,
+        "link_changes": [
+          {
+            "after": {
+              "enabled": false,
+              "latency_ticks": 9,
+              "quality": 0.08
+            },
+            "before": {
+              "enabled": true,
+              "latency_ticks": 2,
+              "quality": 0.93
+            },
+            "cause": "link_loss",
+            "link_id": "link-pla-kj700",
+            "seq": 3
+          },
+          {
+            "after": {
+              "enabled": true,
+              "latency_ticks": 7,
+              "quality": 0.23
+            },
+            "before": {
+              "enabled": true,
+              "latency_ticks": 5,
+              "quality": 0.42
+            },
+            "cause": "link_loss",
+            "link_id": "link-pla-055",
+            "seq": 4
+          }
+        ],
         "links": [
           {
             "enabled": true,
@@ -206,7 +238,8 @@
         ]
       },
       {
-        "decision_seq": 4,
+        "decision_seq": 6,
+        "link_changes": [],
         "links": [
           {
             "enabled": true,
@@ -405,7 +438,8 @@
         ]
       },
       {
-        "decision_seq": 5,
+        "decision_seq": 7,
+        "link_changes": [],
         "links": [
           {
             "enabled": true,
@@ -604,7 +638,8 @@
         ]
       },
       {
-        "decision_seq": 8,
+        "decision_seq": 10,
+        "link_changes": [],
         "links": [
           {
             "enabled": true,
@@ -803,7 +838,8 @@
         ]
       },
       {
-        "decision_seq": 8,
+        "decision_seq": 10,
+        "link_changes": [],
         "links": [
           {
             "enabled": true,
@@ -1002,7 +1038,8 @@
         ]
       },
       {
-        "decision_seq": 8,
+        "decision_seq": 10,
+        "link_changes": [],
         "links": [
           {
             "enabled": true,
@@ -1201,14 +1238,46 @@
         ]
       },
       {
-        "decision_seq": 12,
+        "decision_seq": 16,
+        "link_changes": [
+          {
+            "after": {
+              "enabled": true,
+              "latency_ticks": 2,
+              "quality": 0.93
+            },
+            "before": {
+              "enabled": false,
+              "latency_ticks": 9,
+              "quality": 0.08
+            },
+            "cause": "recover",
+            "link_id": "link-pla-kj700",
+            "seq": 14
+          },
+          {
+            "after": {
+              "enabled": true,
+              "latency_ticks": 5,
+              "quality": 0.42
+            },
+            "before": {
+              "enabled": true,
+              "latency_ticks": 7,
+              "quality": 0.23
+            },
+            "cause": "recover",
+            "link_id": "link-pla-055",
+            "seq": 15
+          }
+        ],
         "links": [
           {
             "enabled": true,
             "from": "pla-j20",
             "id": "link-pla-j20",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1216,15 +1285,15 @@
             "from": "pla-kj700",
             "id": "link-pla-kj700",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
             "enabled": true,
             "from": "pla-055",
             "id": "link-pla-055",
-            "latency_ticks": 2,
-            "quality": 0.94,
+            "latency_ticks": 5,
+            "quality": 0.42,
             "to": "command"
           },
           {
@@ -1232,7 +1301,7 @@
             "from": "pla-j36",
             "id": "link-pla-j36",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1240,7 +1309,7 @@
             "from": "pla-j50",
             "id": "link-pla-j50",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1248,7 +1317,7 @@
             "from": "pla-095",
             "id": "link-pla-095",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1256,7 +1325,7 @@
             "from": "pla-004",
             "id": "link-pla-004",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           }
         ],
@@ -1325,7 +1394,7 @@
           {
             "affiliation": "PLA",
             "conceptual": false,
-            "connection": "online",
+            "connection": "degraded",
             "domain": "surface",
             "id": "pla-055",
             "model_label": "Type 055 / 055 型",
@@ -1400,14 +1469,15 @@
         ]
       },
       {
-        "decision_seq": 12,
+        "decision_seq": 16,
+        "link_changes": [],
         "links": [
           {
             "enabled": true,
             "from": "pla-j20",
             "id": "link-pla-j20",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1415,15 +1485,15 @@
             "from": "pla-kj700",
             "id": "link-pla-kj700",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
             "enabled": true,
             "from": "pla-055",
             "id": "link-pla-055",
-            "latency_ticks": 2,
-            "quality": 0.94,
+            "latency_ticks": 5,
+            "quality": 0.42,
             "to": "command"
           },
           {
@@ -1431,7 +1501,7 @@
             "from": "pla-j36",
             "id": "link-pla-j36",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1439,7 +1509,7 @@
             "from": "pla-j50",
             "id": "link-pla-j50",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1447,7 +1517,7 @@
             "from": "pla-095",
             "id": "link-pla-095",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1455,7 +1525,7 @@
             "from": "pla-004",
             "id": "link-pla-004",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           }
         ],
@@ -1524,7 +1594,7 @@
           {
             "affiliation": "PLA",
             "conceptual": false,
-            "connection": "online",
+            "connection": "degraded",
             "domain": "surface",
             "id": "pla-055",
             "model_label": "Type 055 / 055 型",
@@ -1599,14 +1669,15 @@
         ]
       },
       {
-        "decision_seq": 12,
+        "decision_seq": 16,
+        "link_changes": [],
         "links": [
           {
             "enabled": true,
             "from": "pla-j20",
             "id": "link-pla-j20",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1614,15 +1685,15 @@
             "from": "pla-kj700",
             "id": "link-pla-kj700",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
             "enabled": true,
             "from": "pla-055",
             "id": "link-pla-055",
-            "latency_ticks": 2,
-            "quality": 0.94,
+            "latency_ticks": 5,
+            "quality": 0.42,
             "to": "command"
           },
           {
@@ -1630,7 +1701,7 @@
             "from": "pla-j36",
             "id": "link-pla-j36",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1638,7 +1709,7 @@
             "from": "pla-j50",
             "id": "link-pla-j50",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1646,7 +1717,7 @@
             "from": "pla-095",
             "id": "link-pla-095",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1654,7 +1725,7 @@
             "from": "pla-004",
             "id": "link-pla-004",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           }
         ],
@@ -1723,7 +1794,7 @@
           {
             "affiliation": "PLA",
             "conceptual": false,
-            "connection": "online",
+            "connection": "degraded",
             "domain": "surface",
             "id": "pla-055",
             "model_label": "Type 055 / 055 型",
@@ -1798,14 +1869,15 @@
         ]
       },
       {
-        "decision_seq": 14,
+        "decision_seq": 18,
+        "link_changes": [],
         "links": [
           {
             "enabled": true,
             "from": "pla-j20",
             "id": "link-pla-j20",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1813,15 +1885,15 @@
             "from": "pla-kj700",
             "id": "link-pla-kj700",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
             "enabled": true,
             "from": "pla-055",
             "id": "link-pla-055",
-            "latency_ticks": 2,
-            "quality": 0.94,
+            "latency_ticks": 5,
+            "quality": 0.42,
             "to": "command"
           },
           {
@@ -1829,7 +1901,7 @@
             "from": "pla-j36",
             "id": "link-pla-j36",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1837,7 +1909,7 @@
             "from": "pla-j50",
             "id": "link-pla-j50",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1845,7 +1917,7 @@
             "from": "pla-095",
             "id": "link-pla-095",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -1853,7 +1925,7 @@
             "from": "pla-004",
             "id": "link-pla-004",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           }
         ],
@@ -1922,7 +1994,7 @@
           {
             "affiliation": "PLA",
             "conceptual": false,
-            "connection": "online",
+            "connection": "degraded",
             "domain": "surface",
             "id": "pla-055",
             "model_label": "Type 055 / 055 型",
@@ -1997,14 +2069,15 @@
         ]
       },
       {
-        "decision_seq": 14,
+        "decision_seq": 18,
+        "link_changes": [],
         "links": [
           {
             "enabled": true,
             "from": "pla-j20",
             "id": "link-pla-j20",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2012,15 +2085,15 @@
             "from": "pla-kj700",
             "id": "link-pla-kj700",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
             "enabled": true,
             "from": "pla-055",
             "id": "link-pla-055",
-            "latency_ticks": 2,
-            "quality": 0.94,
+            "latency_ticks": 5,
+            "quality": 0.42,
             "to": "command"
           },
           {
@@ -2028,7 +2101,7 @@
             "from": "pla-j36",
             "id": "link-pla-j36",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2036,7 +2109,7 @@
             "from": "pla-j50",
             "id": "link-pla-j50",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2044,7 +2117,7 @@
             "from": "pla-095",
             "id": "link-pla-095",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2052,7 +2125,7 @@
             "from": "pla-004",
             "id": "link-pla-004",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           }
         ],
@@ -2121,7 +2194,7 @@
           {
             "affiliation": "PLA",
             "conceptual": false,
-            "connection": "online",
+            "connection": "degraded",
             "domain": "surface",
             "id": "pla-055",
             "model_label": "Type 055 / 055 型",
@@ -2216,14 +2289,15 @@
         ]
       },
       {
-        "decision_seq": 14,
+        "decision_seq": 18,
+        "link_changes": [],
         "links": [
           {
             "enabled": true,
             "from": "pla-j20",
             "id": "link-pla-j20",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2231,15 +2305,15 @@
             "from": "pla-kj700",
             "id": "link-pla-kj700",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
             "enabled": true,
             "from": "pla-055",
             "id": "link-pla-055",
-            "latency_ticks": 2,
-            "quality": 0.94,
+            "latency_ticks": 5,
+            "quality": 0.42,
             "to": "command"
           },
           {
@@ -2247,7 +2321,7 @@
             "from": "pla-j36",
             "id": "link-pla-j36",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2255,7 +2329,7 @@
             "from": "pla-j50",
             "id": "link-pla-j50",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2263,7 +2337,7 @@
             "from": "pla-095",
             "id": "link-pla-095",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2271,16 +2345,16 @@
             "from": "pla-004",
             "id": "link-pla-004",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           }
         ],
         "metrics": {
-          "avg_latency_ticks": 2,
+          "avg_latency_ticks": 1.9473684210526316,
           "completed_tasks": 1,
-          "delivered": 20,
-          "dropped": 5,
-          "freshness": 0.8624999999999999,
+          "delivered": 19,
+          "dropped": 6,
+          "freshness": 0.8291666666666666,
           "pending_messages": 6
         },
         "perception": {
@@ -2340,7 +2414,7 @@
           {
             "affiliation": "PLA",
             "conceptual": false,
-            "connection": "online",
+            "connection": "degraded",
             "domain": "surface",
             "id": "pla-055",
             "model_label": "Type 055 / 055 型",
@@ -2435,14 +2509,15 @@
         ]
       },
       {
-        "decision_seq": 17,
+        "decision_seq": 21,
+        "link_changes": [],
         "links": [
           {
             "enabled": true,
             "from": "pla-j20",
             "id": "link-pla-j20",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2450,15 +2525,15 @@
             "from": "pla-kj700",
             "id": "link-pla-kj700",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
             "enabled": true,
             "from": "pla-055",
             "id": "link-pla-055",
-            "latency_ticks": 2,
-            "quality": 0.94,
+            "latency_ticks": 5,
+            "quality": 0.42,
             "to": "command"
           },
           {
@@ -2466,7 +2541,7 @@
             "from": "pla-j36",
             "id": "link-pla-j36",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2474,7 +2549,7 @@
             "from": "pla-j50",
             "id": "link-pla-j50",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2482,7 +2557,7 @@
             "from": "pla-095",
             "id": "link-pla-095",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           },
           {
@@ -2490,16 +2565,16 @@
             "from": "pla-004",
             "id": "link-pla-004",
             "latency_ticks": 2,
-            "quality": 0.94,
+            "quality": 0.93,
             "to": "command"
           }
         ],
         "metrics": {
-          "avg_latency_ticks": 2.0454545454545454,
+          "avg_latency_ticks": 2,
           "completed_tasks": 1,
-          "delivered": 22,
-          "dropped": 5,
-          "freshness": 0.8541666666666667,
+          "delivered": 21,
+          "dropped": 6,
+          "freshness": 0.8208333333333333,
           "pending_messages": 6
         },
         "perception": {
@@ -2538,8 +2613,8 @@
             "role": "合成信息节点",
             "side": "blue",
             "type_label": "战斗机符号",
-            "x": 35.109980355069034,
-            "y": 28.60777188646679
+            "x": 35.448215853272636,
+            "y": 28.67986859905558
           },
           {
             "affiliation": "PLA",
@@ -2553,13 +2628,13 @@
             "role": "合成信息节点",
             "side": "blue",
             "type_label": "用户指定概念预警机符号",
-            "x": 24.425228159459298,
-            "y": 36.90384411955019
+            "x": 24.036022731491038,
+            "y": 37.22993584094804
           },
           {
             "affiliation": "PLA",
             "conceptual": false,
-            "connection": "online",
+            "connection": "degraded",
             "domain": "surface",
             "id": "pla-055",
             "model_label": "Type 055 / 055 型",
@@ -2568,8 +2643,8 @@
             "role": "合成信息节点",
             "side": "blue",
             "type_label": "驱逐舰符号",
-            "x": 36.97399567364494,
-            "y": 61.74410412428142
+            "x": 36.648419492906655,
+            "y": 62.08166499912222
           },
           {
             "affiliation": "PLA",
@@ -2583,8 +2658,8 @@
             "role": "合成信息节点",
             "side": "blue",
             "type_label": "用户指定概念航空符号",
-            "x": 41.72818019728266,
-            "y": 18.374661085104435
+            "x": 41.4564893367887,
+            "y": 18.693607510427487
           },
           {
             "affiliation": "PLA",
@@ -2598,8 +2673,8 @@
             "role": "合成信息节点",
             "side": "blue",
             "type_label": "用户指定概念航空符号",
-            "x": 29.098037994632577,
-            "y": 75.64468646596244
+            "x": 28.982300314283545,
+            "y": 75.39932067883966
           },
           {
             "affiliation": "PLA",
@@ -2613,8 +2688,8 @@
             "role": "合成信息节点",
             "side": "blue",
             "type_label": "用户指定概念潜航符号",
-            "x": 43.45837849739815,
-            "y": 82.19511998171694
+            "x": 43.519809171657776,
+            "y": 82.45466579944411
           },
           {
             "affiliation": "PLA",
@@ -2628,8 +2703,8 @@
             "role": "合成信息节点",
             "side": "blue",
             "type_label": "用户指定概念航母符号",
-            "x": 43.762627956247776,
-            "y": 53.83759562375292
+            "x": 43.66741956975867,
+            "y": 53.921989046373355
           },
           {
             "affiliation": "TW",
@@ -2760,7 +2835,7 @@
           ]
         },
         "proposal_id": "proposal-00003",
-        "seq": 3,
+        "seq": 5,
         "tick": 0
       },
       {
@@ -2779,14 +2854,14 @@
         "kind": "approved",
         "note": "建议已批准；尚未执行",
         "proposal_id": "proposal-00003",
-        "seq": 4,
+        "seq": 6,
         "tick": 1
       },
       {
         "kind": "executing",
         "note": "已批准的信息管理动作开始执行",
         "proposal_id": "proposal-00003",
-        "seq": 5,
+        "seq": 7,
         "tick": 2
       },
       {
@@ -2795,7 +2870,7 @@
         "proposal_id": "proposal-00003",
         "report_id": "obs-000013",
         "sampled_tick": 3,
-        "seq": 6,
+        "seq": 8,
         "tick": 3
       },
       {
@@ -2811,14 +2886,14 @@
         },
         "kind": "desk_received",
         "proposal_id": "proposal-00003",
-        "seq": 7,
+        "seq": 9,
         "tick": 3
       },
       {
         "kind": "completed",
         "note": "反馈：补充样本采集动作已执行；发送、接收或失败另见报告事件，完成不表示送达",
         "proposal_id": "proposal-00003",
-        "seq": 8,
+        "seq": 10,
         "tick": 3
       },
       {
@@ -2834,7 +2909,7 @@
         },
         "kind": "desk_read",
         "proposal_id": "proposal-00003",
-        "seq": 9,
+        "seq": 11,
         "tick": 6
       },
       {
@@ -2850,7 +2925,7 @@
         },
         "kind": "desk_judged",
         "proposal_id": "proposal-00003",
-        "seq": 10,
+        "seq": 12,
         "tick": 6
       },
       {
@@ -2866,7 +2941,7 @@
         },
         "kind": "desk_judged",
         "proposal_id": "proposal-00003",
-        "seq": 11,
+        "seq": 13,
         "tick": 6
       },
       {
@@ -2875,7 +2950,7 @@
         "proposal_id": "proposal-00003",
         "report_id": "obs-000013",
         "sampled_tick": 3,
-        "seq": 12,
+        "seq": 16,
         "tick": 6
       },
       {
@@ -2895,7 +2970,7 @@
         "proposal_id": "proposal-00003",
         "report_id": "obs-000013",
         "sampled_tick": 3,
-        "seq": 13,
+        "seq": 17,
         "tick": 9
       },
       {
@@ -2911,7 +2986,7 @@
         },
         "kind": "desk_received",
         "proposal_id": "proposal-00003",
-        "seq": 14,
+        "seq": 18,
         "tick": 9
       },
       {
@@ -2927,7 +3002,7 @@
         },
         "kind": "desk_read",
         "proposal_id": "proposal-00003",
-        "seq": 15,
+        "seq": 19,
         "tick": 12
       },
       {
@@ -2945,7 +3020,7 @@
         },
         "kind": "desk_judged",
         "proposal_id": "proposal-00003",
-        "seq": 16,
+        "seq": 20,
         "tick": 12
       },
       {
@@ -2962,7 +3037,7 @@
         },
         "kind": "desk_judged",
         "proposal_id": "proposal-00003",
-        "seq": 17,
+        "seq": 21,
         "tick": 12
       }
     ],
@@ -3041,5 +3116,5440 @@
       }
     ],
     "desk_review_version": 1
-  }
+  },
+  "strategy_studies": [
+    {
+      "case_id": "proposal-00003",
+      "delivery": "normal",
+      "end_tick": 30,
+      "fork_seq": 20,
+      "fork_tick": 12,
+      "frames": [
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 12,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 13,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 14,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 15,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": null,
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": null,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 16,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": null,
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": null,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 17,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": null,
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": null,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 18,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 19,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 20,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 21,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 22,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 23,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 24,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 25,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 26,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 27,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 28,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 29,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 30,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 18
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 18,
+                "received_tick": 15,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        }
+      ],
+      "kind": "c5isr-strategy-study",
+      "link_events": [
+        {
+          "enabled": false,
+          "origin": "recorded",
+          "seq": 3,
+          "tick": 0
+        },
+        {
+          "enabled": true,
+          "origin": "recorded",
+          "seq": 14,
+          "tick": 6
+        }
+      ],
+      "sampled_tick": 3,
+      "schema_version": 1,
+      "settlement": {
+        "field_record": {
+          "expected_samples": 4,
+          "finding": "continuous",
+          "id": "field-pla-kj700-3",
+          "recorded_samples": 4,
+          "sampled_tick": 3,
+          "source_id": "pla-kj700"
+        },
+        "immediate": {
+          "decision_tick": 12,
+          "unresolved": 0,
+          "verification_requests": 0,
+          "wait_ticks": 0,
+          "wrong": 1
+        },
+        "verify": {
+          "decision_tick": 18,
+          "unresolved": 0,
+          "verification_requests": 1,
+          "wait_ticks": 6,
+          "wrong": 0
+        }
+      },
+      "source_id": "pla-kj700"
+    },
+    {
+      "case_id": "proposal-00003",
+      "delivery": "delayed",
+      "end_tick": 30,
+      "fork_seq": 20,
+      "fork_tick": 12,
+      "frames": [
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 12,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 13,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 14,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 15,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 16,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 17,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 18,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 19,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 20,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 21,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 22,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 23,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 24,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": null,
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": null,
+                "received_tick": 24,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 25,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": null,
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": null,
+                "received_tick": 24,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 26,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": null,
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": null,
+                "received_tick": 24,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 27,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 27
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 27,
+                "received_tick": 24,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 28,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 27
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 27,
+                "received_tick": 24,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 29,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 27
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 27,
+                "received_tick": 24,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 30,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              },
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "verification-proposal-00003"
+                ],
+                "finding": "continuous",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013",
+                  "verification-proposal-00003"
+                ],
+                "tick": 27
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "continuous",
+                "id": "verification-proposal-00003",
+                "kind": "verification",
+                "read_tick": 27,
+                "received_tick": 24,
+                "root_id": "field-pla-kj700-3",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "counter-pla-kj700"
+              }
+            ]
+          }
+        }
+      ],
+      "kind": "c5isr-strategy-study",
+      "link_events": [
+        {
+          "enabled": false,
+          "origin": "recorded",
+          "seq": 3,
+          "tick": 0
+        },
+        {
+          "enabled": true,
+          "origin": "recorded",
+          "seq": 14,
+          "tick": 6
+        },
+        {
+          "enabled": false,
+          "origin": "scenario",
+          "seq": null,
+          "tick": 14
+        },
+        {
+          "enabled": true,
+          "origin": "scenario",
+          "seq": null,
+          "tick": 23
+        }
+      ],
+      "sampled_tick": 3,
+      "schema_version": 1,
+      "settlement": {
+        "field_record": {
+          "expected_samples": 4,
+          "finding": "continuous",
+          "id": "field-pla-kj700-3",
+          "recorded_samples": 4,
+          "sampled_tick": 3,
+          "source_id": "pla-kj700"
+        },
+        "immediate": {
+          "decision_tick": 12,
+          "unresolved": 0,
+          "verification_requests": 0,
+          "wait_ticks": 0,
+          "wrong": 1
+        },
+        "verify": {
+          "decision_tick": 27,
+          "unresolved": 0,
+          "verification_requests": 1,
+          "wait_ticks": 15,
+          "wrong": 0
+        }
+      },
+      "source_id": "pla-kj700"
+    },
+    {
+      "case_id": "proposal-00003",
+      "delivery": "lost",
+      "end_tick": 30,
+      "fork_seq": 20,
+      "fork_tick": 12,
+      "frames": [
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 12,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 13,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 14,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 15,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 16,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 17,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 18,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 19,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 20,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 21,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 22,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 23,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 24,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 25,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 26,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 27,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 28,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 29,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        },
+        {
+          "immediate": {
+            "decisions": [
+              {
+                "action": "conclude",
+                "evidence_ids": [
+                  "obs-000013"
+                ],
+                "finding": "gap",
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          },
+          "tick": 30,
+          "verify": {
+            "decisions": [
+              {
+                "action": "request_verification",
+                "evidence_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "finding": null,
+                "read_ids": [
+                  "relay-proposal-00003",
+                  "obs-000013"
+                ],
+                "tick": 12
+              }
+            ],
+            "reports": [
+              {
+                "claim": "continuous",
+                "id": "relay-proposal-00003",
+                "kind": "relay",
+                "read_tick": 6,
+                "received_tick": 3,
+                "root_id": "obs-000002",
+                "root_sampled_tick": 0,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              },
+              {
+                "claim": "gap",
+                "id": "obs-000013",
+                "kind": "supplement",
+                "read_tick": 12,
+                "received_tick": 9,
+                "root_id": "obs-000013",
+                "root_sampled_tick": 3,
+                "sampled_tick": 3,
+                "source_id": "pla-kj700"
+              }
+            ]
+          }
+        }
+      ],
+      "kind": "c5isr-strategy-study",
+      "link_events": [
+        {
+          "enabled": false,
+          "origin": "recorded",
+          "seq": 3,
+          "tick": 0
+        },
+        {
+          "enabled": true,
+          "origin": "recorded",
+          "seq": 14,
+          "tick": 6
+        },
+        {
+          "enabled": false,
+          "origin": "scenario",
+          "seq": null,
+          "tick": 14
+        }
+      ],
+      "sampled_tick": 3,
+      "schema_version": 1,
+      "settlement": {
+        "field_record": {
+          "expected_samples": 4,
+          "finding": "continuous",
+          "id": "field-pla-kj700-3",
+          "recorded_samples": 4,
+          "sampled_tick": 3,
+          "source_id": "pla-kj700"
+        },
+        "immediate": {
+          "decision_tick": 12,
+          "unresolved": 0,
+          "verification_requests": 0,
+          "wait_ticks": 0,
+          "wrong": 1
+        },
+        "verify": {
+          "decision_tick": null,
+          "unresolved": 1,
+          "verification_requests": 1,
+          "wait_ticks": 18,
+          "wrong": 0
+        }
+      },
+      "source_id": "pla-kj700"
+    }
+  ]
 }

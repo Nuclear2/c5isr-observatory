@@ -9,6 +9,11 @@ export interface Unit {
   contact?: { first_seen_tick: number; last_seen_tick: number; expires_tick: number };
 }
 export interface Link { id: string; from: string; to: string; quality: number; latency_ticks: number; enabled: boolean; }
+export type LinkState = Pick<Link, 'enabled' | 'quality' | 'latency_ticks'>;
+export interface LinkChange {
+  seq: number; link_id: string; cause: 'link_loss' | 'recover' | 'restore_link';
+  before: LinkState; after: LinkState;
+}
 export interface Observation { id: string; unit_id: string; source_id: string; observed_tick: number; received_tick: number; confidence: number; note: string; }
 export interface Proposal {
   id: string; title: string; rationale: string; action: Action; subject_id: string;
@@ -65,7 +70,12 @@ export interface DecisionEvent {
   desk_judgment?: DeskJudgment | null;
 }
 // Older exports predate decision recording and have no sequence cutoff.
-export interface Frame { tick: number; units: Unit[]; links: Link[]; metrics: Metrics; perception: Perception; decision_seq?: number; }
+export interface Frame {
+  tick: number; units: Unit[]; links: Link[]; metrics: Metrics; perception: Perception;
+  decision_seq?: number;
+  // Ordered with the decision log; absent in archives predating per-transition recording.
+  link_changes?: LinkChange[];
+}
 export interface ModelStatus { provider: string; available: boolean; busy: boolean; last_error: string | null; last_run_tick: number | null; detail: string; }
 export interface AutomationStatus {
   mode: 'manual' | 'ai'; phase: 'idle' | 'waiting' | 'analyzing' | 'executing' | 'error';

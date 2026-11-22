@@ -59,3 +59,28 @@ test('unreceived terminal versions preserve previous center holdings and never g
   assert.ok(milestones.some(e => e.kind === 'dropped'));
   assert.ok(!milestones.some(e => e.kind === 'center'));
 });
+
+test('same-tick outage, rebuffer, recovery and resend replay in recorded sequence', () => {
+  const up = { enabled: true, quality: .93, latency_ticks: 2 };
+  const down = { enabled: false, quality: .08, latency_ticks: 9 };
+  const change = (seq, before, after) => ({
+    seq, before, after, link_id: 'uplink', cause: after.enabled ? 'recover' : 'link_loss',
+  });
+  const row = (tick, decision_seq, profile, link_changes) => ({
+    ...frame(tick, profile.enabled, decision_seq), link_changes, links: [{ id: 'uplink', from: 'local', to: 'command', ...profile }],
+  });
+  const before = row(6, 9, up, []);
+  const bounce = row(7, 14, up, [change(10, up, down), change(12, down, up)]);
+  const close = row(9, 18, down, [change(17, up, down)]);
+  const history = [before, bounce, close];
+  const transport = (kind, tick, seq) => ({ kind, tick, seq, report_id: 'local-2', proposal_id: 'p-2' });
+  const log = [transport('sent', 6, 9), transport('buffered', 7, 11), transport('sent', 7, 13), transport('received', 9, 16)];
+  const moments = reportMilestones(ledger[1], close, history, log).filter(m => m.seq !== undefined);
+  assert.deepEqual(moments.map(m => [m.seq, m.kind]), [[9, 'sent'], [10, 'offline'], [11, 'buffered'], [12, 'restored'], [13, 'sent'], [16, 'center']]);
+  assert.deepEqual(reportMilestones(ledger[1], before, history, log).filter(m => m.seq).map(m => m.seq), [9]);
+  const beforeArrival = { ...close, decision_seq: 15 };
+  assert.ok(!reportMilestones(ledger[1], beforeArrival, history, log).some(m => m.kind === 'center' || m.seq >= 16));
+  const clipped = [row(7, 14, up, [change(12, down, up)]), close];
+  assert.ok(reportMilestones(ledger[1], close, clipped, log).some(m => m.kind === 'offline_at_start' && m.tick === 7));
+  assert.deepEqual(reportMilestones(ledger[0], close, history, log).map(m => m.kind), ['sample', 'field', 'center']);
+});

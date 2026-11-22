@@ -12,11 +12,14 @@ use std::sync::atomic::{AtomicU64, Ordering};
 pub mod evidence_lab;
 mod live_desk;
 mod report_versions;
+pub mod strategy_study;
 pub use live_desk::{DeskActor, DeskClaim, DeskFinding, DeskJudgment, DeskReport, DeskReportKind};
 pub use report_versions::ReportVersion;
 
 const COMMAND: &str = "command";
 const MAX_HISTORY: usize = 360;
+// A paused client can toggle faults without advancing the rolling frame window.
+const MAX_LINK_CHANGES_PER_TICK: usize = 256;
 const MAX_EVENTS: usize = 300;
 const MAX_OBSERVATIONS: usize = 100;
 const MAX_PROPOSALS: usize = 40;
@@ -69,6 +72,32 @@ pub struct Link {
     pub quality: f64,
     pub latency_ticks: u64,
     pub enabled: bool,
+}
+
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
+pub struct LinkState {
+    pub enabled: bool,
+    pub quality: f64,
+    pub latency_ticks: u64,
+}
+
+impl Link {
+    fn profile(&self) -> LinkState {
+        LinkState {
+            enabled: self.enabled,
+            quality: self.quality,
+            latency_ticks: self.latency_ticks,
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct LinkChange {
+    pub seq: u64,
+    pub link_id: String,
+    pub cause: String,
+    pub before: LinkState,
+    pub after: LinkState,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -188,6 +217,8 @@ pub struct Frame {
     pub tick: u64,
     #[serde(default)]
     pub decision_seq: u64,
+    #[serde(default)]
+    pub link_changes: Vec<LinkChange>,
     pub units: Vec<Unit>,
     pub links: Vec<Link>,
     pub metrics: Metrics,
@@ -246,6 +277,9 @@ pub struct Engine {
     world_rng: u64,
     event_seq: u64,
     decision_seq: u64,
+    link_changes: Vec<LinkChange>,
+    // Profiles displaced by the active experiment fault, keyed by stable link index.
+    fault_baselines: HashMap<usize, LinkState>,
     decision_retention: HashMap<String, u64>,
     observation_seq: u64,
     proposal_seq: u64,
@@ -318,6 +352,8 @@ impl Engine {
             world_rng: seed ^ 0xe703_7ed1_a0b4_28db,
             event_seq: 0,
             decision_seq: 0,
+            link_changes: Vec::new(),
+            fault_baselines: HashMap::new(),
             decision_retention: HashMap::new(),
             observation_seq: 0,
             proposal_seq: 0,
@@ -375,6 +411,7 @@ impl Engine {
     /// Advance exactly one tick. A scheduler owns wall time, running, and speed.
     pub fn step(&mut self) {
         self.state.tick += 1;
+        self.link_changes.clear();
         self.deliver_field_copies();
         self.expire_proposals();
         self.ensure_offline_request(false);
@@ -447,15 +484,28 @@ impl Engine {
     pub fn inject(&mut self, kind: &str) -> Result<(), String> {
         match kind {
             "link_loss" => {
-                for link in &mut self.state.links {
-                    if link.from == "pla-kj700" {
-                        link.enabled = false;
-                        link.quality = 0.08;
-                        link.latency_ticks = 9;
-                    } else if link.from == "pla-055" {
-                        link.quality = 0.23;
-                        link.latency_ticks = 7;
-                    }
+                // Reserve room for the matching recovery of both affected links.
+                if self.link_changes.len() + 4 > MAX_LINK_CHANGES_PER_TICK {
+                    return Err("本步的链路变更记录已满，请推进一个仿真步后再注入故障".into());
+                }
+                for index in 0..self.state.links.len() {
+                    let link = &self.state.links[index];
+                    let before = link.profile();
+                    let after = match link.from.as_str() {
+                        "pla-kj700" => LinkState {
+                            enabled: false,
+                            quality: 0.08,
+                            latency_ticks: 9,
+                        },
+                        "pla-055" => LinkState {
+                            quality: 0.23,
+                            latency_ticks: 7,
+                            ..before
+                        },
+                        _ => continue,
+                    };
+                    self.fault_baselines.entry(index).or_insert(before);
+                    self.change_link(index, kind, after);
                 }
                 self.event(
                     "injection",
@@ -474,24 +524,50 @@ impl Engine {
                 );
             }
             "recover" => {
-                for link in &mut self.state.links {
-                    link.enabled = true;
-                    link.quality = 0.94;
-                    link.latency_ticks = 2;
+                let noise_active = self.noisy_until != 0 && self.noisy_until >= self.state.tick;
+                let note = match (!self.fault_baselines.is_empty(), noise_active) {
+                    (false, false) => return Ok(()),
+                    (false, true) => "实验恢复：已清除观察噪声",
+                    (true, false) => "实验恢复：受扰链路已恢复到故障前的状态",
+                    (true, true) => "实验恢复：受扰链路已恢复到故障前的状态，观察噪声已清除",
+                };
+                let mut reopened = false;
+                for index in 0..self.state.links.len() {
+                    if let Some(baseline) = self.fault_baselines.remove(&index) {
+                        reopened |= baseline.enabled && !self.state.links[index].enabled;
+                        self.change_link(index, kind, baseline);
+                    }
                 }
                 self.noisy_until = 0;
-                self.event(
-                    "injection",
-                    "实验恢复：合成链路和观察噪声恢复基准状态",
-                    None,
-                );
-                self.resume_buffered_reports();
+                self.event("injection", note, None);
+                if reopened {
+                    self.resume_buffered_reports();
+                }
             }
             _ => return Err(format!("未知实验注入类型：{kind}")),
         }
         self.refresh_metrics();
         self.replace_current_frame();
         Ok(())
+    }
+
+    fn change_link(&mut self, index: usize, cause: &str, after: LinkState) {
+        let link = &mut self.state.links[index];
+        let before = link.profile();
+        if before == after {
+            return;
+        }
+        link.enabled = after.enabled;
+        link.quality = after.quality;
+        link.latency_ticks = after.latency_ticks;
+        self.decision_seq += 1;
+        self.link_changes.push(LinkChange {
+            seq: self.decision_seq,
+            link_id: link.id.clone(),
+            cause: cause.into(),
+            before,
+            after,
+        });
     }
 
     pub fn review(&mut self, id: &str, approve: bool) -> Result<(), String> {
@@ -1286,19 +1362,26 @@ impl Engine {
     fn apply_action(&mut self, proposal: &Proposal) -> String {
         match proposal.action.as_str() {
             "restore_link" => {
-                let link = self
+                let index = self
                     .state
                     .links
-                    .iter_mut()
-                    .find(|l| l.id == proposal.subject_id)
+                    .iter()
+                    .position(|l| l.id == proposal.subject_id)
                     .unwrap();
-                let previous = link.quality;
-                link.enabled = true;
-                link.quality = 0.97;
-                link.latency_ticks = 1;
+                let previous = self.state.links[index].quality;
+                self.fault_baselines.remove(&index);
+                self.change_link(
+                    index,
+                    "restore_link",
+                    LinkState {
+                        enabled: true,
+                        quality: 0.97,
+                        latency_ticks: 1,
+                    },
+                );
                 format!(
                     "反馈：{} 合成链路质量 {:.0}% → 97%，延迟预算 1 tick",
-                    link.id,
+                    proposal.subject_id,
                     previous * 100.0
                 )
             }
@@ -1796,6 +1879,7 @@ impl Engine {
         self.state.history.push(Frame {
             tick: self.state.tick,
             decision_seq: self.decision_seq,
+            link_changes: self.link_changes.clone(),
             units: self.state.units.clone(),
             links: self.state.links.clone(),
             metrics: self.state.metrics.clone(),

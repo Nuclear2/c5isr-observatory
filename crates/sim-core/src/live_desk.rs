@@ -3,7 +3,7 @@
 use super::{DecisionEvent, Engine, Observation};
 use serde::{Deserialize, Serialize};
 
-const READ_INTERVAL: u64 = 3;
+pub(super) const READ_INTERVAL: u64 = 3;
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]

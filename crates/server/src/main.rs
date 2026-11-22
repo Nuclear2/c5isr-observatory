@@ -11,6 +11,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use sim_core::strategy_study::{Delivery, StrategyStudy, run_study};
 use sim_core::{Engine, ModelProposal};
 use std::{
     collections::HashSet,
@@ -97,6 +98,7 @@ struct Inner {
     model: ModelStatus,
     journal: Vec<Value>,
     model_runs: Vec<Value>,
+    strategy_studies: Vec<StrategyStudy>,
     automation: AutomationStatus,
     active_job: Option<ActiveJob>,
     job_sequence: u64,
@@ -105,6 +107,16 @@ struct Inner {
 impl Inner {
     fn public_run_id(&self) -> String {
         format!("{}-{}", self.server_epoch, self.engine.current().run_id)
+    }
+
+    fn require_run(&self, run_id: &str) -> Result<(), ApiError> {
+        if run_id != self.public_run_id() {
+            return Err(ApiError(
+                StatusCode::CONFLICT,
+                "实验已切换，请重新查看当前记录。".into(),
+            ));
+        }
+        Ok(())
     }
 
     fn view(&self) -> Value {
@@ -185,6 +197,7 @@ struct Injection {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Review {
+    run_id: String,
     approve: bool,
 }
 
@@ -195,6 +208,15 @@ struct DeskJudgmentCommand {
     case_id: String,
     expected_read_seq: u64,
     evidence_ids: Vec<String>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct StrategyCommand {
+    run_id: String,
+    case_id: String,
+    conflict_seq: u64,
+    delivery: Delivery,
 }
 
 #[derive(Deserialize)]
@@ -348,6 +370,7 @@ async fn control(
             inner.engine = Engine::new(seed);
             inner.journal.clear();
             inner.model_runs.clear();
+            inner.strategy_studies.clear();
             inner.model.last_run_tick = None;
             inner.model.last_error = None;
             inner.automation = AutomationStatus {
@@ -379,6 +402,7 @@ async fn review(
 ) -> Result<Json<Value>, ApiError> {
     let mut inner = app.inner.lock().await;
     app.ensure_running()?;
+    inner.require_run(&command.run_id)?;
     if inner.automation.mode == "ai" {
         return Err(ApiError(
             StatusCode::CONFLICT,
@@ -402,12 +426,7 @@ async fn record_desk_judgment(
             "请先停止自治，再记录人工判断。".into(),
         ));
     }
-    if command.run_id != inner.public_run_id() {
-        return Err(ApiError(
-            StatusCode::CONFLICT,
-            "实验已切换，请查看当前审核席。".into(),
-        ));
-    }
+    inner.require_run(&command.run_id)?;
     inner
         .engine
         .record_desk_judgment(
@@ -424,6 +443,34 @@ async fn record_desk_judgment(
         }),
     );
     Ok(Json(app.publish(&inner)))
+}
+
+async fn strategy_study(
+    State(app): State<Arc<AppState>>,
+    Json(command): Json<StrategyCommand>,
+) -> Result<Json<StrategyStudy>, ApiError> {
+    let mut inner = app.inner.lock().await;
+    app.ensure_running()?;
+    inner.require_run(&command.run_id)?;
+    let snapshot = inner.engine.current();
+    let oldest = snapshot.history.first().map_or(snapshot.tick, |f| f.tick);
+    inner.strategy_studies.retain(|s| s.fork_tick >= oldest);
+    if let Some(study) = inner.strategy_studies.iter().find(|s| {
+        s.case_id == command.case_id
+            && s.fork_seq == command.conflict_seq
+            && s.delivery == command.delivery
+    }) {
+        return Ok(Json(study.clone()));
+    }
+    let study = run_study(
+        inner.engine.current(),
+        &command.case_id,
+        command.conflict_seq,
+        command.delivery,
+    )
+    .map_err(bad)?;
+    inner.strategy_studies.push(study.clone());
+    Ok(Json(study))
 }
 
 async fn events(State(app): State<Arc<AppState>>) -> impl IntoResponse {
@@ -1156,10 +1203,18 @@ async fn shutdown_app(app: &Arc<AppState>) {
 
 async fn export(State(app): State<Arc<AppState>>) -> impl IntoResponse {
     let inner = app.inner.lock().await;
+    let snapshot = inner.engine.current();
+    let oldest = snapshot.history.first().map_or(snapshot.tick, |f| f.tick);
+    let studies: Vec<_> = inner
+        .strategy_studies
+        .iter()
+        .filter(|s| s.fork_tick >= oldest)
+        .collect();
     let archive = json!({
         "schema_version":1, "kind":"c5isr-synthetic-experiment", "scenario_version":"archipelago-2-own-view",
         "notice":"所有参数和空间均为合成数据，装备名称仅为标签。历史快照用于回看，不代表现实作战效能。",
         "snapshot":inner.view(), "journal":inner.journal, "model_runs":inner.model_runs,
+        "strategy_studies":studies,
     });
     (
         [(
@@ -1260,6 +1315,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         },
         journal: Vec::new(),
         model_runs: Vec::new(),
+        strategy_studies: Vec::new(),
         automation: AutomationStatus::default(),
         active_job: None,
         job_sequence: 0,
@@ -1284,6 +1340,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/inject", post(inject))
         .route("/proposals/{id}/review", post(review))
         .route("/review-desk/judgments", post(record_desk_judgment))
+        .route("/strategy-study", post(strategy_study))
         .route("/model/analyze", post(analyze))
         .route("/automation", post(automation))
         .route("/export", get(export))

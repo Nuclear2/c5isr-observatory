@@ -10,7 +10,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let child, base;
 before(async () => {
   child = spawn(path.join(root, 'target', 'debug', `c5isr-server${process.platform === 'win32' ? '.exe' : ''}`), [], {
-    cwd: root, windowsHide: true, env: { ...process.env, C5ISR_PORT: '0', C5ISR_DISABLE_MODEL: '1' },
+    cwd: root, windowsHide: true, env: { ...process.env, C5ISR_PORT: '0', C5ISR_DISABLE_MODEL: '1', C5ISR_NO_BROWSER: '1' },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   base = await new Promise((resolve, reject) => {
@@ -86,8 +86,8 @@ test('approval, simulation advance, feedback and export form a complete loop', a
   await post('/api/control', { action: 'step' });
   let state = await get('/api/state');
   assert.equal(state.metrics.completed_tasks, 0);
-  await post(`/api/proposals/${proposal.id}/review`, { approve: true });
-  await post(`/api/proposals/${proposal.id}/review`, { approve: true }, 400);
+  await post(`/api/proposals/${proposal.id}/review`, { run_id: initial.run_id, approve: true });
+  await post(`/api/proposals/${proposal.id}/review`, { run_id: initial.run_id, approve: true }, 400);
   for (let i = 0; i < 4; i++) state = await post('/api/control', { action: 'step' });
   const completed = state.proposals.find(p => p.id === proposal.id);
   assert.equal(completed.status, 'completed');
@@ -97,6 +97,26 @@ test('approval, simulation advance, feedback and export form a complete loop', a
   assert.equal(archive.snapshot.tick, state.tick);
   assert.ok(archive.journal.some(e => e.kind === 'review'));
   assert.ok(archive.snapshot.history.length > 1);
+});
+
+test('a delayed approve or reject cannot act on a reused ID after reset', async () => {
+  const reset = () => post('/api/control', { action: 'reset', value: 20261022 });
+  const old = await reset();
+  const current = await reset();
+  const id = old.proposals[0].id;
+  const route = `/api/proposals/${id}/review`;
+  assert.notEqual(old.run_id, current.run_id);
+  assert.ok(current.proposals.some(p => p.id === id && p.status === 'pending'));
+  for (const approve of [true, false]) {
+    await post(route, { run_id: old.run_id, approve }, 409);
+  }
+  const malformed = await fetch(base + route, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"approve":true}' });
+  assert.equal(malformed.status, 422);
+  const recorded = await get('/api/export');
+  assert.deepEqual(recorded.snapshot.decision_log, current.decision_log);
+  assert.equal(recorded.journal.some(e => e.kind === 'review'), false);
+  const valid = await post(route, { run_id: current.run_id, approve: true });
+  assert.equal(valid.proposals.find(p => p.id === id).status, 'approved');
 });
 
 test('fault injection changes state and recover clears the outage', async () => {
@@ -128,7 +148,7 @@ test('approved refresh waits for link recovery, arrives without backdating, and 
 
   let state = await post('/api/control', { action: 'step' });
   assert.ok(!state.decision_log.some(event => event.proposal_id === proposal.id && event.kind === 'buffered'));
-  const approved = await post(`/api/proposals/${proposal.id}/review`, { approve: true });
+  const approved = await post(`/api/proposals/${proposal.id}/review`, { run_id: fault.run_id, approve: true });
   const approvalEvent = approved.decision_log.find(event => event.proposal_id === proposal.id && event.kind === 'approved');
   assert.equal(approvalEvent.actor, 'human');
   assert.deepEqual(approvalEvent.evidence, originalEvidence);
@@ -218,7 +238,7 @@ test('both node views replay the same report revision and their own receipt acro
   let reportId;
   for (let tick = 0; tick <= 9; tick++) {
     if (tick > 0) state = await post('/api/control', { action: 'step' });
-    if (tick === 1) state = await post(`/api/proposals/${proposal.id}/review`, { approve: true });
+    if (tick === 1) state = await post(`/api/proposals/${proposal.id}/review`, { run_id: initial.run_id, approve: true });
     if (tick === 6) state = await post('/api/inject', { kind: 'recover' });
     assert.equal(state.tick, tick);
     const rows = state.report_versions.filter(row => row.source_id === source);
@@ -277,7 +297,7 @@ test('live desk reads actual outage reports and freezes the basis of each judgme
   const step = () => post('/api/control', { action: 'step' });
   assert.equal(initial.desk_review_version, 1);
   await step();
-  await post(`/api/proposals/${task.id}/review`, { approve: true });
+  await post(`/api/proposals/${task.id}/review`, { run_id: initial.run_id, approve: true });
   await step();
   let state = await step();
   const relay = desk(state)[0].desk_report;
@@ -312,6 +332,7 @@ test('live desk reads actual outage reports and freezes the basis of each judgme
   const secondRead = desk(state).find(e => e.kind === 'desk_read' && e.desk_report.id === reportId);
   assert.deepEqual([secondRead.tick, secondRead.desk_report.sampled_tick, secondRead.desk_report.claim], [12, 3, 'gap']);
   const both = [relay.id, reportId];
+  const conflict = desk(state).at(-1);
   assert.deepEqual(desk(state).at(-1).desk_judgment, { actor: 'rule', finding: 'conflict', read_ids: both, evidence_ids: both });
   await post(path, command(relayRead.seq, [relay.id]), 400);
   await post(path, command(secondRead.seq, [reportId, reportId]), 400);
@@ -321,7 +342,32 @@ test('live desk reads actual outage reports and freezes the basis of each judgme
   });
   const concurrent = await Promise.all([submit(), submit()]);
   assert.deepEqual(concurrent.map(r => r.status).sort(), [200, 400]);
+  const original = await get('/api/state');
+  const studyPath = '/api/strategy-study';
+  const fork = { run_id: original.run_id, case_id: task.id, conflict_seq: conflict.seq };
+  await post(studyPath, { ...fork, conflict_seq: desk(original).at(-1).seq, delivery: 'normal' }, 400);
+  await post(studyPath, { ...fork, case_id: 'absent', delivery: 'normal' }, 400);
+  const studies = [];
+  for (const delivery of ['normal', 'delayed', 'lost']) {
+    const body = { ...fork, delivery };
+    const result = await post(studyPath, body);
+    studies.push(result);
+    assert.deepEqual(await post(studyPath, body), result);
+    assert.deepEqual(result.frames[0].immediate.decisions[0].evidence_ids, [reportId]);
+    assert.deepEqual(result.frames[0].verify.decisions[0].evidence_ids, both);
+    assert.deepEqual(result.frames[0].immediate.reports, result.frames[0].verify.reports);
+    assert.deepEqual(result.settlement.field_record, studies[0].settlement.field_record);
+    assert.equal(result.settlement.immediate.wrong, 1);
+    assert.equal(result.settlement.verify.verification_requests, 1);
+    const readAt = { normal: 18, delayed: 27, lost: null }[delivery];
+    assert.equal(result.settlement.verify.decision_tick, readAt);
+    assert.equal(result.settlement.verify.unresolved, Number(readAt === null));
+    assert.equal(result.settlement.verify.wait_ticks, (readAt ?? 30) - 12);
+  }
+  assert.deepEqual(await get('/api/state'), original, 'the fork must not advance or mutate the live experiment');
+  assert.doesNotMatch(JSON.stringify(original), /field_record|recorded_samples|verification-proposal|strategy_studies/);
   const recorded = parseArchive(JSON.stringify(await get('/api/export')));
+  assert.deepEqual(recorded.strategy_studies, studies);
   assert.equal(recorded.desk_review_version, 1);
   const judgments = desk(recorded).filter(e => e.kind === 'desk_judged');
   assert.deepEqual(judgments.find(e => e.seq === frozen.seq), frozen);
@@ -330,8 +376,11 @@ test('live desk reads actual outage reports and freezes the basis of each judgme
   const sample = parseArchive(JSON.stringify(await get('/examples/two-node-replay.json')));
   assert.deepEqual(desk(sample), desk(recorded), 'bundled desk timeline must match the live run');
   assert.deepEqual(sample.history, recorded.history);
+  assert.deepEqual(sample.strategy_studies, studies, 'the bundled forks must reproduce the live server results');
   await post('/api/control', { action: 'reset', value: seed });
   await post(path, finalCommand, 409);
+  await post(studyPath, { ...fork, delivery: 'normal' }, 409);
+  assert.deepEqual((await get('/api/export')).strategy_studies, []);
   assert.deepEqual(desk(await get('/api/state')), []);
 });
 

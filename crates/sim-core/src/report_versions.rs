@@ -1,4 +1,4 @@
-use super::{DeskClaim, Engine, Observation, next_random};
+use super::{Engine, Observation};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -31,14 +31,13 @@ impl Engine {
             .map_or(1, |row| row.version + 1);
         // Seeded samples are present in both inboxes when the scenario opens.
         let initial_receipt = proposal_id.is_none().then_some(self.state.tick);
-        // Independent draw for the originating edition; relays quote this
-        // stored value even if the latest remote sample is still buffered.
-        let mut seed = self.state.seed ^ self.observation_seq ^ observation.observed_tick;
-        let claim = if next_random(&mut seed) < 0.5 {
-            DeskClaim::Continuous
-        } else {
-            DeskClaim::Gap
-        };
+        // Freeze the readout for this source and sample. A relay later quotes
+        // that edition, including any readout error.
+        let claim = super::strategy_study::edition_claim(
+            self.state.seed,
+            &observation.source_id,
+            observation.observed_tick,
+        );
         self.edition_claims.insert(observation.id.clone(), claim);
         self.state.report_versions.push(ReportVersion {
             source_id: observation.source_id.clone(),

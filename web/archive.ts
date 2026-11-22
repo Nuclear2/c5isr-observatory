@@ -1,5 +1,7 @@
-import type { DecisionEvent, Frame, Link, Observation, Proposal, ReportVersion, Unit } from '../contracts/state';
+import type { DecisionEvent, Frame, Link, LinkChange, LinkState, Observation, Proposal, ReportVersion, Unit } from '../contracts/state';
+import type { StrategyStudy } from '../contracts/strategy';
 import { isDeskEventPayload, validateDeskHistory } from './deskArchive.ts';
+import { parseStudyAttachments } from './strategyArchive.ts';
 
 export const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 
@@ -27,11 +29,58 @@ function isLink(v: unknown): v is Link {
     && number(v.quality) && tick(v.latency_ticks) && typeof v.enabled === 'boolean';
 }
 
+function isLinkState(v: unknown): v is LinkState {
+  return record(v) && typeof v.enabled === 'boolean' && number(v.quality) && v.quality >= 0 && v.quality <= 1
+    && tick(v.latency_ticks) && v.latency_ticks > 0;
+}
+
+function isLinkChange(v: unknown): v is LinkChange {
+  return record(v) && tick(v.seq) && v.seq > 0 && string(v.link_id)
+    && oneOf(v.cause, ['link_loss', 'recover', 'restore_link']) && isLinkState(v.before) && isLinkState(v.after);
+}
+
+function sameProfile(a: LinkState, b: LinkState) {
+  return a.enabled === b.enabled && a.latency_ticks === b.latency_ticks && a.quality === b.quality;
+}
+
+function validateLinkHistory(history: Frame[], decisions: DecisionEvent[]) {
+  const recorded = history[0].link_changes !== undefined;
+  const decisionSeqs = new Set(decisions.map(e => e.seq));
+  let decisionIndex = 0;
+  for (let i = 0; i < history.length; i++) {
+    const frame = history[i];
+    if ((frame.link_changes !== undefined) !== recorded) throw new Error('链路变更序列在部分帧缺失。');
+    if (!frame.link_changes) continue;
+    if (frame.decision_seq === undefined) throw new Error('链路变更缺少帧末游标。');
+    const prior = history[i - 1];
+    while (decisionIndex < decisions.length && decisions[decisionIndex].tick < frame.tick) decisionIndex++;
+    let lowerBound = Math.max(prior?.decision_seq ?? 0, decisions[decisionIndex - 1]?.seq ?? 0);
+    // A clipped first frame still carries the before/after states of every retained change.
+    const profiles = new Map<string, LinkState>(prior?.tick === frame.tick - 1 ? prior.links.map(l => [l.id, l]) : []);
+    const ids = new Set(frame.links.map(l => l.id));
+    for (const change of frame.link_changes) {
+      const previous = profiles.get(change.link_id);
+      if (change.seq <= lowerBound || change.seq > frame.decision_seq || decisionSeqs.has(change.seq)) {
+        throw new Error('链路变更顺序与帧末游标或决策记录冲突。');
+      }
+      if (!ids.has(change.link_id) || sameProfile(change.before, change.after) || (previous && !sameProfile(previous, change.before))) {
+        throw new Error('链路变更与前态记录不一致。');
+      }
+      profiles.set(change.link_id, change.after);
+      lowerBound = change.seq;
+    }
+    if (frame.links.some(l => profiles.has(l.id) && !sameProfile(profiles.get(l.id)!, l))) {
+      throw new Error('链路变更与帧末链路状态不一致。');
+    }
+  }
+}
+
 function isFrame(v: unknown): v is Frame {
   if (!record(v) || !tick(v.tick) || !record(v.metrics) || !record(v.perception)) return false;
   const m = v.metrics;
   const p = v.perception;
   return (v.decision_seq === undefined || tick(v.decision_seq))
+    && (v.link_changes === undefined || (Array.isArray(v.link_changes) && v.link_changes.every(isLinkChange)))
     && Array.isArray(v.units) && v.units.every(isUnit) && Array.isArray(v.links) && v.links.every(isLink)
     && [m.delivered, m.dropped, m.pending_messages, m.completed_tasks].every(tick)
     && [m.avg_latency_ticks, m.freshness].every(number)
@@ -107,7 +156,7 @@ export function parseArchive(text: string) {
   return parseArchiveData(file);
 }
 
-export function parseArchiveData(file: unknown): { history: Frame[]; decision_log: DecisionEvent[]; report_versions?: ReportVersion[]; desk_review_version?: 1 } {
+export function parseArchiveData(file: unknown): { history: Frame[]; decision_log: DecisionEvent[]; report_versions?: ReportVersion[]; desk_review_version?: 1; strategy_studies?: StrategyStudy[] } {
   if (!record(file) || file.kind !== 'c5isr-synthetic-experiment' || file.schema_version !== 1 || !record(file.snapshot)) {
     throw new Error('无法识别实验归档类型或版本。');
   }
@@ -151,6 +200,8 @@ export function parseArchiveData(file: unknown): { history: Frame[]; decision_lo
   } else if (marker !== undefined || decisions.some(event => event.kind.startsWith('desk_'))) {
     throw new Error('审核席记录版本、决策序列或双节点收件记录缺失或不受支持。');
   }
-  return { history, decision_log: decisions, ...(versions && { report_versions: versions }),
+  validateLinkHistory(history, decisions);
+  const studies = file.strategy_studies === undefined ? undefined : parseStudyAttachments(file.strategy_studies, decisions, history);
+  return { history, decision_log: decisions, ...(versions && { report_versions: versions }), ...(studies && { strategy_studies: studies }),
     ...(marker === 1 && { desk_review_version: marker }) };
 }

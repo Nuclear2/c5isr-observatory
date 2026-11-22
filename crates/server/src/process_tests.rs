@@ -283,6 +283,7 @@ pub(super) fn app_fixture(root: PathBuf) -> Arc<AppState> {
         },
         journal: vec![],
         model_runs: vec![],
+        strategy_studies: vec![],
         automation: AutomationStatus::default(),
         active_job: None,
         job_sequence: 0,

@@ -1,6 +1,6 @@
 # Run from PowerShell in its own process. Build dependencies: Node, pnpm,
 # Rust's x86_64-pc-windows-gnu toolchain and GNU binutils (or llvm-objdump).
-param([string]$Version = '0.1.0')
+param([string]$Version = (Get-Content -Raw -LiteralPath "$PSScriptRoot/../package.json" | ConvertFrom-Json).version)
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT' -or $Version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') {
     throw 'Expected Windows and a numeric major.minor.patch release version.'

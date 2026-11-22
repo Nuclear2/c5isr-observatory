@@ -1,0 +1,169 @@
+name: Windows portable release
+
+on:
+  push:
+    branches: [main]
+    tags: ['v[0-9]+.[0-9]+.[0-9]+']
+    paths:
+      - '.github/workflows/windows-release.yml'
+      - 'scripts/package-windows.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.event.deleted != true
+    runs-on: windows-2025
+    timeout-minutes: 35
+    env:
+      RUSTUP_TOOLCHAIN: 1.99.1-x86_64-pc-windows-gnu
+      C5ISR_DISABLE_MODEL: '1'
+      C5ISR_NO_BROWSER: '1'
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+      commit: ${{ steps.version.outputs.commit }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24.22.1'
+          package-manager-cache: false
+
+      - name: Install pinned build tools
+        shell: pwsh
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $manifest = Get-Content -Raw package.json | ConvertFrom-Json
+          $prefix = Join-Path $env:RUNNER_TEMP 'pnpm-cli'
+          npm install --prefix $prefix --no-audit --no-fund $manifest.packageManager
+          "$prefix/node_modules/.bin" >> $env:GITHUB_PATH
+
+          rustup toolchain install $env:RUSTUP_TOOLCHAIN --profile minimal --component rustfmt --component llvm-tools-preview
+          $triple = 'x86_64-pc-windows-gnu'
+          $selfContained = Join-Path (rustc --print sysroot) "lib/rustlib/$triple/bin/self-contained"
+          $linker = (Get-Item -LiteralPath "$selfContained/x86_64-w64-mingw32-gcc.exe").FullName
+          "CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=$linker" >> $env:GITHUB_ENV
+          $selfContained >> $env:GITHUB_PATH
+
+          $archive = Join-Path $env:RUNNER_TEMP 'w64devkit.7z.exe'
+          Invoke-WebRequest 'https://github.com/skeeto/w64devkit/releases/download/v2.10.1/w64devkit-x64-2.10.1.7z.exe' -OutFile $archive
+          if ((Get-FileHash $archive).Hash -ne 'add1edf984ce4d473cfeb7c52e0ab38db73a855bba6c7f564d5e16648eb2896a') { throw 'w64devkit checksum mismatch' }
+          7z x -y "-o$env:RUNNER_TEMP" $archive | Out-Null
+          $kit = Join-Path $env:RUNNER_TEMP 'w64devkit'
+          $notice = (Get-Item -LiteralPath "$kit/COPYING.MinGW-w64-runtime.txt").FullName
+          "MINGW_RUNTIME_NOTICE=$notice" >> $env:GITHUB_ENV
+          "$kit/bin" >> $env:GITHUB_PATH
+
+      - name: Check version and dependency locks
+        id: version
+        shell: pwsh
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          $version = (Get-Content -Raw package.json | ConvertFrom-Json).version
+          $metadata = cargo metadata --no-deps --locked --format-version 1 | ConvertFrom-Json
+          if ($version -notmatch '^\d+\.\d+\.\d+$' -or @($metadata.packages | Where-Object version -ne $version).Count) { throw 'Cargo and package.json versions must match' }
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -cne "v$version") { throw 'Tag must match the package version' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "commit=$(git rev-parse HEAD)" >> $env:GITHUB_OUTPUT
+          pnpm install --frozen-lockfile
+
+      - name: Run offline tests and build the portable ZIP
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          cargo fmt --all -- --check
+          cargo test --workspace --locked
+          cargo build --locked -p c5isr-server
+          node --test 'web/*.test.mjs'
+          pnpm test:bridge
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1 -Version $env:VERSION
+          node --test tests/http.test.mjs
+
+      - name: Launch the extracted ZIP and read the bundled replay
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          C5ISR_PORT: '0'
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'portable smoke'
+          Expand-Archive -LiteralPath "artifacts/C5ISR-Observatory-v$env:VERSION-windows-x64.zip" -DestinationPath $dir
+          $log = Join-Path $env:RUNNER_TEMP 'portable-startup.txt'
+          $server = Start-Process "$dir/C5ISR-Observatory.exe" -WorkingDirectory $env:RUNNER_TEMP -WindowStyle Hidden -PassThru -RedirectStandardOutput $log
+          try {
+            $deadline = [datetime]::UtcNow.AddSeconds(20)
+            do {
+              if ($server.HasExited -or [datetime]::UtcNow -gt $deadline) { throw 'Portable server failed to start' }
+              Start-Sleep -Milliseconds 200
+              $ready = (Get-Content -Raw $log) -match '(http://127\.0\.0\.1:\d+)/\?view=archive&example=two-node'
+            } until ($ready)
+            $base = $Matches[1]
+            $health = Invoke-RestMethod "$base/api/health" -TimeoutSec 5
+            $archive = Invoke-RestMethod "$base/examples/two-node-replay.json" -TimeoutSec 5
+            if ($health.status -ne 'ok' -or $health.version -ne $env:VERSION -or $archive.snapshot.history.Count -ne 11) { throw 'Unexpected health or replay data' }
+          } finally {
+            if (!$server.HasExited) { $server.Kill(); $server.WaitForExit() }
+            $server.Dispose()
+          }
+
+      - name: Save verified release files
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        id: upload
+        with:
+          name: windows-x64-${{ github.run_attempt }}
+          path: |
+            artifacts/C5ISR-Observatory-v${{ steps.version.outputs.version }}-windows-x64.zip
+            artifacts/C5ISR-Observatory-v${{ steps.version.outputs.version }}-windows-x64.zip.sha256
+          if-no-files-found: error
+          compression-level: 0
+
+  publish:
+    if: github.event_name == 'push' && github.ref_type == 'tag' && github.event.created
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact-id }}
+          path: release
+      - name: Publish both assets on the verified tag
+        working-directory: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILT_COMMIT: ${{ needs.build.outputs.commit }}
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "$(gh api "repos/$GITHUB_REPOSITORY/commits/$tag" --jq .sha)" == "$BUILT_COMMIT" ]]
+          zip="C5ISR-Observatory-$tag-windows-x64.zip"
+          digest=$(sha256sum "$zip" | cut -d' ' -f1)
+          [[ "$(cat "$zip.sha256")" == "$digest  $zip" ]]
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$tag" > "$RUNNER_TEMP/existing.json"; then
+            # A retry can accept the exact files already published, never replace them.
+            jq -e --arg zip "$zip" --arg hash "sha256:$digest" \
+              --arg checkhash "sha256:$(sha256sum "$zip.sha256" | cut -d' ' -f1)" \
+              '.draft == false and any(.assets[]; .name == $zip and .digest == $hash)
+              and any(.assets[]; .name == ($zip + ".sha256") and .digest == $checkhash)' "$RUNNER_TEMP/existing.json"
+            exit 0
+          fi
+          cat > "$RUNNER_TEMP/notes.md" <<EOF
+          下载 \`$zip\`，全部解压后双击 \`C5ISR-Observatory.exe\`。浏览器会打开本机 T+8 的双节点对照回放。回放无需安装 Node.js、Rust 或登录账号。
+
+          **ZIP SHA-256** \`$digest\`
+          EOF
+          gh release create "$tag" "$zip" "$zip.sha256" --repo "$GITHUB_REPOSITORY" \
+            --verify-tag --title "$tag · Windows x64 便携版" --notes-file "$RUNNER_TEMP/notes.md"

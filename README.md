@@ -10,11 +10,11 @@
 
 ## Windows 便携版
 
-1. 从 [GitHub Release 下载 Windows x64 压缩包](https://github.com/Nuclear2/c5isr-observatory/releases/download/v0.1.0/C5ISR-Observatory-v0.1.0-windows-x64.zip)，选择 **全部解压**，保留目录结构。
+1. 打开[最新 Release](https://github.com/Nuclear2/c5isr-observatory/releases/latest)，在 **Assets** 中下载文件名以 `-windows-x64.zip` 结尾的便携包，选择 **全部解压**，保留目录结构。
 2. 双击解压目录里的 `C5ISR-Observatory.exe`。默认浏览器会打开随包示例，停在 **T+8 · 双节点对照**。点 **下一历史帧** 就能看到中心在 T+9 收到 V2。回放和手动仿真均可离线运行，无需安装 Rust、Node.js 或登录账号。
 3. 点击 **实时态势** 可以在本机开始新实验。使用期间保持程序窗口开启，结束时在该窗口按 `Ctrl+C`。浏览器没有自动弹出时，可以复制程序窗口给出的回放地址打开。
 
-压缩包的 SHA-256 列在 [Release 页面](https://github.com/Nuclear2/c5isr-observatory/releases/tag/v0.1.0)。下载后可在 PowerShell 中运行 `Get-FileHash .\C5ISR-Observatory-v0.1.0-windows-x64.zip` 核对。
+每个版本都附有同名的 `.zip.sha256` 校验文件。下载后可在 PowerShell 中运行 `Get-FileHash .\C5ISR-Observatory-v*-windows-x64.zip`，将对应文件的 SHA-256 与校验文件里的值核对。
 
 ## 快速回放断链补报示例
 
@@ -133,6 +133,21 @@ node scripts/codex-bridge.mjs status
 详细协议与官方文档见 [模型接入说明](docs/model-integration.md)。
 
 ## 开发与验证
+
+### 发布 Windows 版本
+
+1. 将根目录 `Cargo.toml` 的工作区版本与 `package.json` 的 `version` 更新为同一个版本号，更新 `Cargo.lock` 并提交。
+2. 在这个提交上打 `vX.Y.Z` 标签并推送。以下命令在 PowerShell 中读取刚提交的版本号。
+
+   ```powershell
+   $tag = 'v' + (Get-Content -Raw package.json | ConvertFrom-Json).version
+   git tag $tag
+   git push --atomic origin main "refs/tags/$tag"
+   ```
+
+3. 在 [Windows Release 工作流](https://github.com/Nuclear2/c5isr-observatory/actions/workflows/windows-release.yml) 查看构建。通过后，GitHub 会将便携 ZIP 与 SHA-256 文件附到该标签的 Release。只想试跑时，在工作流页面选择 **Run workflow** 即可验证构建。
+
+### 本地开发
 
 后端终端：
 

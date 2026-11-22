@@ -139,6 +139,8 @@ Vite 将仓库示例按原始字节写入 `dist/examples/two-node-replay.json`�
 
 在安装了前端依赖、x64 Windows GNU Rust 工具链和 binutils 的工作区中，运行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1` 生成 `artifacts/` 下的 ZIP 及 `.sha256` 文件。脚本使用上游许可证文件生成第三方声明，外部 MinGW 工具链可用 `MINGW_RUNTIME_NOTICE` 指定其运行库许可文本。构建时重映射源码路径，打包时只收录清单列出的文件，对实际字节检查本机标识，并逐项核对 ZIP 解压后的哈希。
 
+GitHub Actions 的 [Windows Release 工作流](../.github/workflows/windows-release.yml) 在托管的 Windows 运行器上调用同一打包脚本。构建任务使用只读仓库权限。推送与应用版本一致的 `vX.Y.Z` 标签后，单独的发布任务使用本次运行的 `GITHUB_TOKEN` 上传已经验证的 ZIP 和校验文件。维护者可手动运行构建来验证打包流程。
+
 ## 6. 实验可复现性与边界
 
 同种子、同领域命令序列的数值演化可复现。run_id 用于区分运行实例，服务另加启动标识以区分进程重启，这些标识不参加数值演算。外部模型输出本身不确定，因此导出保存已得到的最终建议与使用量；回看不重新调用模型。

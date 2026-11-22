@@ -16,6 +16,8 @@ $artifactDir = Join-Path $repo 'artifacts'
 
 # Use neutral compile-time source locations for both file!() and panic strings.
 # rustc uses the last matching prefix, so add specialized registry paths last.
+& cargo fetch --locked --target $triple
+if ($LASTEXITCODE -ne 0) { throw 'Could not fetch locked Rust dependencies.' }
 $cargoDir = $env:CARGO_HOME
 if (!$cargoDir) { $cargoDir = Join-Path $env:USERPROFILE '.cargo' }
 $prefixes = [ordered]@{}

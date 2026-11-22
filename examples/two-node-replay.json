@@ -4,7 +4,7 @@
   "scenario_version": "archipelago-2-own-view",
   "snapshot": {
     "seed": 20261022,
-    "tick": 10,
+    "tick": 12,
     "history": [
       {
         "decision_seq": 3,
@@ -604,7 +604,7 @@
         ]
       },
       {
-        "decision_seq": 7,
+        "decision_seq": 8,
         "links": [
           {
             "enabled": true,
@@ -803,7 +803,7 @@
         ]
       },
       {
-        "decision_seq": 7,
+        "decision_seq": 8,
         "links": [
           {
             "enabled": true,
@@ -1002,7 +1002,7 @@
         ]
       },
       {
-        "decision_seq": 7,
+        "decision_seq": 8,
         "links": [
           {
             "enabled": true,
@@ -1201,7 +1201,7 @@
         ]
       },
       {
-        "decision_seq": 8,
+        "decision_seq": 12,
         "links": [
           {
             "enabled": true,
@@ -1400,7 +1400,7 @@
         ]
       },
       {
-        "decision_seq": 8,
+        "decision_seq": 12,
         "links": [
           {
             "enabled": true,
@@ -1599,7 +1599,7 @@
         ]
       },
       {
-        "decision_seq": 8,
+        "decision_seq": 12,
         "links": [
           {
             "enabled": true,
@@ -1798,7 +1798,7 @@
         ]
       },
       {
-        "decision_seq": 9,
+        "decision_seq": 14,
         "links": [
           {
             "enabled": true,
@@ -1997,7 +1997,7 @@
         ]
       },
       {
-        "decision_seq": 9,
+        "decision_seq": 14,
         "links": [
           {
             "enabled": true,
@@ -2214,6 +2214,444 @@
             "y": 31.125740375221383
           }
         ]
+      },
+      {
+        "decision_seq": 14,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 2,
+          "completed_tasks": 1,
+          "delivered": 20,
+          "dropped": 5,
+          "freshness": 0.8624999999999999,
+          "pending_messages": 6
+        },
+        "perception": {
+          "active_contacts": 1,
+          "cycle_ticks": 8,
+          "next_scan_tick": 16,
+          "total_archived": 0,
+          "total_discovered": 1
+        },
+        "tick": 11,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35.23020515808096,
+            "y": 28.800093402067507
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 24.228344247091755,
+            "y": 37.0330519285805
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 36.77762730193696,
+            "y": 61.885296627414235
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 41.59768183992151,
+            "y": 18.563109153066343
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 29.170748382245453,
+            "y": 75.47203106645253
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 43.34715377214786,
+            "y": 82.34344107419382
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 43.81574066223555,
+            "y": 53.97510175236113
+          },
+          {
+            "affiliation": "TW",
+            "conceptual": false,
+            "connection": "online",
+            "contact": {
+              "expires_tick": 56,
+              "first_seen_tick": 8,
+              "last_seen_tick": 8
+            },
+            "domain": "air",
+            "id": "contact-000001",
+            "model_label": "F-16V",
+            "name": "合成接触 001",
+            "readiness": 0.8586669351656299,
+            "role": "已接收合成接触报告；位置为最近观测值",
+            "side": "red",
+            "type_label": "战斗机符号",
+            "x": 66.43831295392836,
+            "y": 31.125740375221383
+          }
+        ]
+      },
+      {
+        "decision_seq": 17,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 2.0454545454545454,
+          "completed_tasks": 1,
+          "delivered": 22,
+          "dropped": 5,
+          "freshness": 0.8541666666666667,
+          "pending_messages": 6
+        },
+        "perception": {
+          "active_contacts": 1,
+          "cycle_ticks": 8,
+          "next_scan_tick": 16,
+          "total_archived": 0,
+          "total_discovered": 1
+        },
+        "tick": 12,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35.109980355069034,
+            "y": 28.60777188646679
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 24.425228159459298,
+            "y": 36.90384411955019
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 36.97399567364494,
+            "y": 61.74410412428142
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 41.72818019728266,
+            "y": 18.374661085104435
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 29.098037994632577,
+            "y": 75.64468646596244
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 43.45837849739815,
+            "y": 82.19511998171694
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 43.762627956247776,
+            "y": 53.83759562375292
+          },
+          {
+            "affiliation": "TW",
+            "conceptual": false,
+            "connection": "online",
+            "contact": {
+              "expires_tick": 56,
+              "first_seen_tick": 8,
+              "last_seen_tick": 8
+            },
+            "domain": "air",
+            "id": "contact-000001",
+            "model_label": "F-16V",
+            "name": "合成接触 001",
+            "readiness": 0.8586669351656299,
+            "role": "已接收合成接触报告；位置为最近观测值",
+            "side": "red",
+            "type_label": "战斗机符号",
+            "x": 66.43831295392836,
+            "y": 31.125740375221383
+          }
+        ]
       }
     ],
     "decision_log": [
@@ -2361,11 +2799,75 @@
         "tick": 3
       },
       {
-        "kind": "completed",
-        "note": "反馈：补充样本采集动作已执行；发送、接收或失败另见报告事件，完成不表示送达",
+        "desk_report": {
+          "claim": null,
+          "id": "relay-proposal-00003",
+          "kind": "relay",
+          "received_tick": 3,
+          "root_id": "obs-000002",
+          "root_sampled_tick": 0,
+          "sampled_tick": 3,
+          "source_id": "pla-kj700"
+        },
+        "kind": "desk_received",
         "proposal_id": "proposal-00003",
         "seq": 7,
         "tick": 3
+      },
+      {
+        "kind": "completed",
+        "note": "反馈：补充样本采集动作已执行；发送、接收或失败另见报告事件，完成不表示送达",
+        "proposal_id": "proposal-00003",
+        "seq": 8,
+        "tick": 3
+      },
+      {
+        "desk_report": {
+          "claim": "continuous",
+          "id": "relay-proposal-00003",
+          "kind": "relay",
+          "received_tick": 3,
+          "root_id": "obs-000002",
+          "root_sampled_tick": 0,
+          "sampled_tick": 3,
+          "source_id": "pla-kj700"
+        },
+        "kind": "desk_read",
+        "proposal_id": "proposal-00003",
+        "seq": 9,
+        "tick": 6
+      },
+      {
+        "desk_judgment": {
+          "actor": "rule",
+          "evidence_ids": [
+            "relay-proposal-00003"
+          ],
+          "finding": "continuous",
+          "read_ids": [
+            "relay-proposal-00003"
+          ]
+        },
+        "kind": "desk_judged",
+        "proposal_id": "proposal-00003",
+        "seq": 10,
+        "tick": 6
+      },
+      {
+        "desk_judgment": {
+          "actor": "human",
+          "evidence_ids": [
+            "relay-proposal-00003"
+          ],
+          "finding": "continuous",
+          "read_ids": [
+            "relay-proposal-00003"
+          ]
+        },
+        "kind": "desk_judged",
+        "proposal_id": "proposal-00003",
+        "seq": 11,
+        "tick": 6
       },
       {
         "kind": "sent",
@@ -2373,7 +2875,7 @@
         "proposal_id": "proposal-00003",
         "report_id": "obs-000013",
         "sampled_tick": 3,
-        "seq": 8,
+        "seq": 12,
         "tick": 6
       },
       {
@@ -2393,8 +2895,75 @@
         "proposal_id": "proposal-00003",
         "report_id": "obs-000013",
         "sampled_tick": 3,
-        "seq": 9,
+        "seq": 13,
         "tick": 9
+      },
+      {
+        "desk_report": {
+          "claim": null,
+          "id": "obs-000013",
+          "kind": "supplement",
+          "received_tick": 9,
+          "root_id": "obs-000013",
+          "root_sampled_tick": 3,
+          "sampled_tick": 3,
+          "source_id": "pla-kj700"
+        },
+        "kind": "desk_received",
+        "proposal_id": "proposal-00003",
+        "seq": 14,
+        "tick": 9
+      },
+      {
+        "desk_report": {
+          "claim": "gap",
+          "id": "obs-000013",
+          "kind": "supplement",
+          "received_tick": 9,
+          "root_id": "obs-000013",
+          "root_sampled_tick": 3,
+          "sampled_tick": 3,
+          "source_id": "pla-kj700"
+        },
+        "kind": "desk_read",
+        "proposal_id": "proposal-00003",
+        "seq": 15,
+        "tick": 12
+      },
+      {
+        "desk_judgment": {
+          "actor": "rule",
+          "evidence_ids": [
+            "relay-proposal-00003",
+            "obs-000013"
+          ],
+          "finding": "conflict",
+          "read_ids": [
+            "relay-proposal-00003",
+            "obs-000013"
+          ]
+        },
+        "kind": "desk_judged",
+        "proposal_id": "proposal-00003",
+        "seq": 16,
+        "tick": 12
+      },
+      {
+        "desk_judgment": {
+          "actor": "human",
+          "evidence_ids": [
+            "obs-000013"
+          ],
+          "finding": "gap",
+          "read_ids": [
+            "relay-proposal-00003",
+            "obs-000013"
+          ]
+        },
+        "kind": "desk_judged",
+        "proposal_id": "proposal-00003",
+        "seq": 17,
+        "tick": 12
       }
     ],
     "report_versions": [
@@ -2470,6 +3039,7 @@
         "source_id": "pla-kj700",
         "version": 2
       }
-    ]
+    ],
+    "desk_review_version": 1
   }
 }

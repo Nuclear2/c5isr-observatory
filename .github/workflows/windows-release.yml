@@ -109,7 +109,23 @@ jobs:
             $base = $Matches[1]
             $health = Invoke-RestMethod "$base/api/health" -TimeoutSec 5
             $archive = Invoke-RestMethod "$base/examples/two-node-replay.json" -TimeoutSec 5
-            if ($health.status -ne 'ok' -or $health.version -ne $env:VERSION -or $archive.snapshot.history.Count -ne 11) { throw 'Unexpected health or replay data' }
+            if ($health.status -ne 'ok' -or $health.version -ne $env:VERSION -or $archive.snapshot.history.Count -ne 13) { throw 'Unexpected health or replay data' }
+            $snapshot = $archive.snapshot
+            $t9 = $snapshot.history | Where-Object tick -eq 9
+            $t12 = $snapshot.history | Where-Object tick -eq 12
+            if ($snapshot.desk_review_version -ne 1 -or !$t9 -or !$t12) { throw 'Missing review desk frames' }
+            $at9 = @($snapshot.decision_log | Where-Object { $_.tick -le 9 -and $_.seq -le $t9.decision_seq })
+            $arrival = @($at9 | Where-Object { $_.kind -eq 'desk_received' -and $_.desk_report.id -eq 'obs-000013' })
+            $readAt9 = @($at9 | Where-Object { $_.kind -eq 'desk_read' -and $_.desk_report.id -eq 'obs-000013' })
+            if ($arrival.Count -ne 1 -or $arrival[0].tick -ne 9 -or $null -ne $arrival[0].desk_report.claim -or $readAt9.Count) { throw 'Expected an unread supplement at T+9' }
+            $at12 = @($snapshot.decision_log | Where-Object { $_.tick -eq 12 -and $_.seq -le $t12.decision_seq -and $_.proposal_id -eq $arrival[0].proposal_id })
+            $read = @($at12 | Where-Object { $_.kind -eq 'desk_read' -and $_.desk_report.id -eq 'obs-000013' -and $_.desk_report.claim -eq 'gap' })
+            $rule = @($at12 | Where-Object { $_.kind -eq 'desk_judged' -and $_.desk_judgment.actor -eq 'rule' })
+            $human = @($at12 | Where-Object { $_.kind -eq 'desk_judged' -and $_.desk_judgment.actor -eq 'human' })
+            if ($read.Count -ne 1 -or $rule.Count -ne 1 -or $human.Count -ne 1 -or $read[0].seq -ge $rule[0].seq -or $rule[0].seq -ge $human[0].seq) { throw 'Missing ordered T+12 reading and judgments' }
+            $both = 'relay-proposal-00003,obs-000013'
+            if ($rule[0].desk_judgment.finding -ne 'conflict' -or ($rule[0].desk_judgment.evidence_ids -join ',') -ne $both) { throw 'Expected conflict between relay and supplement' }
+            if ($human[0].desk_judgment.finding -ne 'gap' -or ($human[0].desk_judgment.read_ids -join ',') -ne $both -or ($human[0].desk_judgment.evidence_ids -join ',') -ne 'obs-000013') { throw 'Expected both reports read and only the supplement cited by the reviewer' }
             $lab = Invoke-RestMethod "$base/examples/evidence-review.json" -TimeoutSec 5
             if ($lab.kind -ne 'c5isr-evidence-lab' -or $lab.immediate.frames.Count -ne 49 -or $lab.review.frames.Count -ne 49 -or $lab.batch.Count -ne 8) { throw 'Unexpected evidence replay data in extracted ZIP' }
           } finally {
@@ -163,7 +179,11 @@ jobs:
             exit 0
           fi
           cat > "$RUNNER_TEMP/notes.md" <<EOF
-          下载 \`$zip\`，全部解压后双击 \`C5ISR-Observatory.exe\`。浏览器会打开本机 T+8 的双节点对照回放。点击页头 **报告复核示例**，可从 T+6 查看审核席当时已读的报告及审批引用，再进入 **分支对照** 比较直接判断与请求复核。随包保存了两条分支各 49 帧和 8 个种子的统计，离线回放无需安装 Node.js、Rust 或登录账号。
+          下载 \`$zip\`，全部解压后双击 \`C5ISR-Observatory.exe\`。浏览器会打开本机 **T+8 · 双节点对照** 回放。回放可离线运行，无需安装 Node.js、Rust 或登录账号。
+
+          1. 点一次 **下一历史帧** 到 T+9，切到 **审核席**。现场补报 \`obs-000013\` 已经送达，仍标为“待阅”。
+          2. 再点三次到 T+12。转述记录“采样连续”，现场补报记录“采样有缺口”。规则判断引用了两份报告，结论为“证据冲突，待核实”。
+          3. 展开 **#17 · 人工判断**。现场补报 \`obs-000013\` 标为“实际引用”，转述 \`relay-proposal-00003\` 标为“已读未引用”。
 
           **ZIP SHA-256** \`$digest\`
           EOF

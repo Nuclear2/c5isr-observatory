@@ -1,0 +1,55 @@
+.decision-tabs.with-desk {
+  gap: 5px;
+  justify-content: space-between;
+  padding-inline: 10px;
+}
+
+.decision-tabs.with-desk button { white-space: nowrap; gap: 3px; }
+.live-desk { min-width: 0; color: #b5c7d2; font-size: 12px; line-height: 1.55; }
+.live-desk code, .desk-times { font-family: var(--mono); }
+.live-desk code { overflow-wrap: anywhere; font-size: 11px; }
+.live-desk p { margin: 3px 0; }
+.desk-line, .desk-heading h3, .live-desk h4 {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px 8px;
+}
+.desk-line { justify-content: space-between; }
+.desk-heading h3, .live-desk h4 { margin: 0; color: #dbebee; font-size: 13px; align-items: center; }
+.desk-heading small, .live-desk h4 small { font-weight: 400; color: #97aebe; font-size: 10px; }
+.live-desk h4 { margin: 15px 0 6px; }
+.desk-case { display: grid; gap: 4px; margin: 11px 0; font-size: 11px; }
+.desk-case select {
+  min-width: 0; width: 100%; padding: 5px; border: 1px solid #36505d; border-radius: 4px;
+  color: #d1e1e8; background: #142632; font: inherit;
+}
+.desk-conflict, .desk-pending { color: #f0bf7e; }
+.desk-read { color: #89d0bf; }
+.desk-footnote, .desk-times { color: #a4b8c5; font-size: 11px; }
+.desk-inbox, .desk-judgment ul { margin: 0; list-style: none; padding: 0; }
+.desk-report, .desk-judgment {
+  margin: 5px 0; padding: 8px 10px; background: #152733;
+  border: 1px solid #304b57; border-radius: 4px;
+}
+.desk-report > code { display: block; color: #c2d7e0; }
+.desk-times { display: flex; gap: 3px 10px; flex-wrap: wrap; margin-block: 5px; }
+.desk-claim { color: #ddedef; font-weight: 600; }
+.desk-judgment { background: #14232e; }
+.desk-judgment summary { cursor: pointer; }
+.desk-judgment summary > strong, .desk-judgment summary > small { display: block; }
+.desk-judgment summary > span, .desk-judgment summary > small { color: #9fb6c4; font-size: 11px; }
+.desk-judgment li { border-top: 1px solid #304754; margin-top: 6px; padding-top: 6px; }
+.desk-judgment li .desk-line strong { color: #a7cfce; font-size: 10px; }
+.desk-manual {
+  display: grid; gap: 6px; margin: 13px 0 0; padding: 8px 10px;
+  border: 1px solid #35545b; border-radius: 4px;
+}
+.desk-manual legend { padding: 0 4px; color: #c3d9dc; }
+.desk-manual label { display: flex; align-items: center; gap: 5px; }
+.desk-manual input { accent-color: #80bfb5; }
+.desk-manual button {
+  justify-content: center; padding: 5px 8px; border: 1px solid #476d71;
+  background: #203e43; color: #c0e5de; border-radius: 4px;
+}
+.desk-manual button:disabled, .desk-manual:disabled button { opacity: .5; }

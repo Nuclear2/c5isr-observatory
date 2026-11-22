@@ -103,13 +103,13 @@ struct Inner {
 }
 
 impl Inner {
+    fn public_run_id(&self) -> String {
+        format!("{}-{}", self.server_epoch, self.engine.current().run_id)
+    }
+
     fn view(&self) -> Value {
         let mut value = serde_json::to_value(self.engine.current()).expect("serializable snapshot");
-        value["run_id"] = json!(format!(
-            "{}-{}",
-            self.server_epoch,
-            value["run_id"].as_str().unwrap_or("run")
-        ));
+        value["run_id"] = json!(self.public_run_id());
         value["model"] = json!(self.model);
         let mut automation = json!(self.automation);
         automation["next_run_in_seconds"] = if self.automation.mode == "ai" && !self.model.busy {
@@ -186,6 +186,15 @@ struct Injection {
 #[serde(deny_unknown_fields)]
 struct Review {
     approve: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct DeskJudgmentCommand {
+    run_id: String,
+    case_id: String,
+    expected_read_seq: u64,
+    evidence_ids: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -378,6 +387,42 @@ async fn review(
     }
     inner.engine.review(&id, command.approve).map_err(bad)?;
     inner.record("review", json!({"id":id,"approve":command.approve}));
+    Ok(Json(app.publish(&inner)))
+}
+
+async fn record_desk_judgment(
+    State(app): State<Arc<AppState>>,
+    Json(command): Json<DeskJudgmentCommand>,
+) -> Result<Json<Value>, ApiError> {
+    let mut inner = app.inner.lock().await;
+    app.ensure_running()?;
+    if inner.automation.mode == "ai" {
+        return Err(ApiError(
+            StatusCode::CONFLICT,
+            "请先停止自治，再记录人工判断。".into(),
+        ));
+    }
+    if command.run_id != inner.public_run_id() {
+        return Err(ApiError(
+            StatusCode::CONFLICT,
+            "实验已切换，请查看当前审核席。".into(),
+        ));
+    }
+    inner
+        .engine
+        .record_desk_judgment(
+            &command.case_id,
+            command.expected_read_seq,
+            &command.evidence_ids,
+        )
+        .map_err(bad)?;
+    inner.record(
+        "desk_judgment",
+        json!({
+            "case_id":command.case_id, "expected_read_seq":command.expected_read_seq,
+            "evidence_ids":command.evidence_ids,
+        }),
+    );
     Ok(Json(app.publish(&inner)))
 }
 
@@ -1238,6 +1283,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/control", post(control))
         .route("/inject", post(inject))
         .route("/proposals/{id}/review", post(review))
+        .route("/review-desk/judgments", post(record_desk_judgment))
         .route("/model/analyze", post(analyze))
         .route("/automation", post(automation))
         .route("/export", get(export))

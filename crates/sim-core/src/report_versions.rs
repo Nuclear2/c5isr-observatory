@@ -1,4 +1,4 @@
-use super::{Engine, Observation};
+use super::{DeskClaim, Engine, Observation, next_random};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
@@ -31,6 +31,15 @@ impl Engine {
             .map_or(1, |row| row.version + 1);
         // Seeded samples are present in both inboxes when the scenario opens.
         let initial_receipt = proposal_id.is_none().then_some(self.state.tick);
+        // Independent draw for the originating edition; relays quote this
+        // stored value even if the latest remote sample is still buffered.
+        let mut seed = self.state.seed ^ self.observation_seq ^ observation.observed_tick;
+        let claim = if next_random(&mut seed) < 0.5 {
+            DeskClaim::Continuous
+        } else {
+            DeskClaim::Gap
+        };
+        self.edition_claims.insert(observation.id.clone(), claim);
         self.state.report_versions.push(ReportVersion {
             source_id: observation.source_id.clone(),
             version,
@@ -109,14 +118,18 @@ impl Engine {
             .map(|message| message.observation.id.as_str())
             .collect();
         self.state.report_versions.retain(|row| {
-            row.sampled_tick >= oldest
+            let keep = row.sampled_tick >= oldest
                 || row.field_received_tick.is_none()
                 || row.field_received_tick.is_some_and(|tick| tick >= oldest)
                 || row.center_received_tick.is_some_and(|tick| tick >= oldest)
                 || in_transit.contains(row.report_id.as_str())
                 || before.get(&row.source_id).is_some_and(|boundary| {
                     [boundary.issued, boundary.field, boundary.center].contains(&row.version)
-                })
+                });
+            if !keep {
+                self.edition_claims.remove(&row.report_id);
+            }
+            keep
         });
     }
 }

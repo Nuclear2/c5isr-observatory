@@ -6,11 +6,13 @@
 //! require an explicit review before execution. It contains no engagement model.
 
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 pub mod evidence_lab;
+mod live_desk;
 mod report_versions;
+pub use live_desk::{DeskActor, DeskClaim, DeskFinding, DeskJudgment, DeskReport, DeskReportKind};
 pub use report_versions::ReportVersion;
 
 const COMMAND: &str = "command";
@@ -137,6 +139,29 @@ pub struct DecisionEvent {
     pub sampled_tick: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub note: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub desk_report: Option<DeskReport>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub desk_judgment: Option<DeskJudgment>,
+}
+
+impl DecisionEvent {
+    fn new(tick: u64, id: &str, kind: &str) -> Self {
+        Self {
+            seq: 0,
+            tick,
+            proposal_id: id.into(),
+            kind: kind.into(),
+            actor: None,
+            proposal: None,
+            evidence: None,
+            report_id: None,
+            sampled_tick: None,
+            note: None,
+            desk_report: None,
+            desk_judgment: None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -172,6 +197,8 @@ pub struct Frame {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Snapshot {
     pub schema_version: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub desk_review_version: Option<u8>,
     pub run_id: String,
     pub seed: u64,
     pub tick: u64,
@@ -225,6 +252,10 @@ pub struct Engine {
     latency_total: u64,
     noisy_until: u64,
     queue: Vec<QueuedMessage>,
+    desk_inbox: VecDeque<(String, DeskReport)>,
+    // Immutable payload of each retained own-source edition. The public ledger
+    // contains only its version/transport metadata until the desk reads a copy.
+    edition_claims: HashMap<String, DeskClaim>,
     executions: Vec<(String, u64)>,
     hidden_objects: Vec<HiddenObject>,
     hidden_seq: u64,
@@ -250,6 +281,7 @@ impl Engine {
         let mut engine = Self {
             state: Snapshot {
                 schema_version: 1,
+                desk_review_version: Some(1),
                 run_id: format!(
                     "synth-{seed:016x}-{}",
                     INSTANCE.fetch_add(1, Ordering::Relaxed)
@@ -292,6 +324,8 @@ impl Engine {
             latency_total: 0,
             noisy_until: 0,
             queue: Vec::new(),
+            desk_inbox: VecDeque::new(),
+            edition_claims: HashMap::new(),
             executions: Vec::new(),
             hidden_objects: Vec::new(),
             hidden_seq: 0,
@@ -357,6 +391,7 @@ impl Engine {
                 self.state.tick + u64::from(self.state.perception.cycle_ticks);
         }
         self.deliver_due();
+        self.read_next_desk_report();
         self.expire_contacts();
         if self.state.tick % 12 == 0 {
             self.generate_baseline();
@@ -1684,16 +1719,11 @@ impl Engine {
                 .collect()
         });
         let event = DecisionEvent {
-            seq: 0,
-            tick: self.state.tick,
-            proposal_id: id.into(),
-            kind: kind.into(),
             actor: actor.map(str::to_string),
             proposal: (kind == "created").then(|| proposal.clone()),
             evidence,
-            report_id: None,
-            sampled_tick: None,
             note: note.map(str::to_string),
+            ..DecisionEvent::new(self.state.tick, id, kind)
         };
         self.push_decision_event(event);
     }
@@ -1703,17 +1733,17 @@ impl Engine {
             return;
         };
         self.push_decision_event(DecisionEvent {
-            seq: 0,
-            tick: self.state.tick,
-            proposal_id: proposal_id.clone(),
-            kind: kind.into(),
-            actor: None,
-            proposal: None,
             evidence: (kind == "received").then(|| vec![message.observation.clone()]),
             report_id: Some(message.observation.id.clone()),
             sampled_tick: Some(message.observation.observed_tick),
             note: Some(note.into()),
+            ..DecisionEvent::new(self.state.tick, proposal_id, kind)
         });
+        match kind {
+            "buffered" => self.receive_desk_relay(proposal_id, &message.observation),
+            "received" => self.receive_desk_supplement(proposal_id, &message.observation),
+            _ => {}
+        }
     }
 
     fn push_decision_event(&mut self, mut event: DecisionEvent) {
@@ -1738,6 +1768,7 @@ impl Engine {
                 .filter_map(|message| message.proposal_id.clone()),
         );
         protected.extend(self.executions.iter().map(|(id, _)| id.clone()));
+        protected.extend(self.desk_inbox.iter().map(|(id, _)| id.clone()));
         // A still-held edition can outlive the proposal list and the frame where
         // it was sampled. Preserve its approval and central transport outcome.
         protected.extend(

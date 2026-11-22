@@ -30,18 +30,39 @@ export interface ReportVersion {
   field_received_tick: number | null;
   center_received_tick: number | null;
 }
+// The desk tracks synthetic collector continuity for one supplementary request.
+// A receipt carries the envelope only. The read event records the claim.
+export interface DeskReport {
+  id: string;
+  source_id: string;
+  kind: 'relay' | 'supplement';
+  root_id: string;
+  root_sampled_tick: number;
+  sampled_tick: number;
+  received_tick: number;
+  claim: 'continuous' | 'gap' | null;
+}
+export interface DeskJudgment {
+  actor: 'rule' | 'human';
+  finding: 'continuous' | 'gap' | 'conflict';
+  read_ids: string[];
+  evidence_ids: string[];
+}
 export interface DecisionEvent {
   seq: number;
   tick: number;
   proposal_id: string;
   kind: 'created' | 'approved' | 'rejected' | 'executing' | 'completed' | 'stale'
-    | 'buffered' | 'sent' | 'received' | 'dropped' | 'expired';
+    | 'buffered' | 'sent' | 'received' | 'dropped' | 'expired'
+    | 'desk_received' | 'desk_read' | 'desk_judged';
   actor?: 'human' | 'ai' | null;
   proposal?: Proposal | null;
   evidence?: Observation[] | null;
   report_id?: string | null;
   sampled_tick?: number | null;
   note?: string | null;
+  desk_report?: DeskReport | null;
+  desk_judgment?: DeskJudgment | null;
 }
 // Older exports predate decision recording and have no sequence cutoff.
 export interface Frame { tick: number; units: Unit[]; links: Link[]; metrics: Metrics; perception: Perception; decision_seq?: number; }
@@ -56,6 +77,7 @@ export interface Snapshot {
   units: Unit[]; links: Link[]; observations: Observation[]; proposals: Proposal[]; events: SimEvent[];
   metrics: Metrics; history: Frame[]; model: ModelStatus; perception: Perception; automation: AutomationStatus;
   decision_log?: DecisionEvent[];
+  desk_review_version?: 1;
   // Absent from exports made before per-recipient receipt recording.
   report_versions?: ReportVersion[];
 }

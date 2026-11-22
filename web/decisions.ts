@@ -12,6 +12,7 @@ export const decisionKindNames: Record<DecisionEvent['kind'], string> = {
   created: '生成建议', approved: '批准', rejected: '驳回', executing: '开始执行',
   completed: '执行完成', stale: '建议过期', buffered: '报告缓存', sent: '报告发出',
   received: '报告送达', dropped: '传输失败', expired: '缓存过期',
+  desk_received: '审核席收件', desk_read: '审核席阅读', desk_judged: '记录证据判断',
 };
 
 export const isReportEvent = (event: DecisionEvent) => ['buffered', 'sent', 'received', 'dropped', 'expired'].includes(event.kind);
@@ -27,6 +28,9 @@ export function eventsAtFrame(log: readonly DecisionEvent[] | undefined, frame: 
 export function rebuildDecisions(events: readonly DecisionEvent[]): DecisionRecord[] {
   const records = new Map<string, DecisionRecord>();
   for (const event of [...events].sort((a, b) => a.seq - b.seq)) {
+    // The desk makes evidence judgments after task execution. Its events never
+    // change the task approval or transport record shown on a proposal card.
+    if (event.kind.startsWith('desk_')) continue;
     let record = records.get(event.proposal_id);
     if (!record && event.proposal) {
       record = { proposal: { ...event.proposal }, evidence: null, events: [], recorded: true };

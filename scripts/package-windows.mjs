@@ -40,6 +40,11 @@ console.error('PE imports: ' + imports.join(', '));
 
 add('C5ISR-Observatory.exe', exe);
 add('LICENSE');
+const guide = readFileSync('README.md', 'utf8').match(/^## Windows 便携版\r?\n([\s\S]*?)(?=\r?\n## )/m);
+if (!guide) throw new Error('Missing Windows portable instructions in README.md.');
+const guidePath = join(artifacts, 'README.md');
+writeFileSync(guidePath, '# C5ISR Observatory · Windows x64\n\n' + guide[1].trim() + '\n');
+add('README.md', guidePath);
 add('scripts/codex-bridge.mjs');
 add('contracts/model-output.schema.json');
 add('contracts/evidence-advice.schema.json');

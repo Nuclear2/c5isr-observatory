@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import { parseArchive } from './archive.ts';
 
 const frame = (tick, decision_seq) => ({
@@ -51,4 +52,93 @@ test('reader rejects malformed DTOs, reversed sequence numbers and premature rep
   assert.throws(() => parseArchive(archive([frame(4, 2)], [event(3, 2)])));
   const observation = { id: 'O1', unit_id: 'U1', source_id: 'U1', observed_tick: 1, received_tick: 3, confidence: .8, note: 'sample' };
   assert.throws(() => parseArchive(archive([frame(4, 3)], [{ ...event(3, 2), evidence: [observation] }])));
+});
+
+const example = readFileSync(new URL('../examples/two-node-replay.json', import.meta.url), 'utf8');
+
+function caseEntries(log) {
+  const report = (kind, reportKind) => log.find(e => e.kind === kind && e.desk_report?.kind === reportKind);
+  const judgment = (actor, count) => log.find(e => e.kind === 'desk_judged' && e.desk_judgment.actor === actor && e.desk_judgment.read_ids.length === count);
+  return {
+    relay: report('desk_received', 'relay'), readRelay: report('desk_read', 'relay'),
+    supplement: report('desk_received', 'supplement'), readOriginal: report('desk_read', 'supplement'),
+    initialRule: judgment('rule', 1), initialHuman: judgment('human', 1),
+    finalRule: judgment('rule', 2), finalHuman: judgment('human', 2),
+  };
+}
+
+test('desk audit keeps received headers, read bodies and cited subsets with their original sequence', () => {
+  const parsed = parseArchive(example);
+  const c = caseEntries(parsed.decision_log);
+  const { id, source_id, root_id } = c.relay.desk_report;
+  const original = c.supplement.desk_report.id;
+  assert.equal(parsed.desk_review_version, 1);
+  assert.equal(c.relay.desk_report.claim, null);
+  assert.equal(c.readRelay.desk_report.claim, 'continuous');
+  assert.deepEqual(c.initialHuman.desk_judgment.read_ids, [id]);
+  assert.deepEqual(c.finalRule.desk_judgment.evidence_ids, [id, original]);
+  assert.deepEqual(c.finalHuman.desk_judgment.evidence_ids, [original]);
+  assert.deepEqual(c.finalHuman.desk_judgment.read_ids, [id, original]);
+  // Old editions and groups can leave the rolling window while a newer group remains protected.
+  const recording = JSON.parse(example);
+  const s = recording.snapshot;
+  s.history = [{ ...s.history.at(-1), tick: 410 }];
+  s.report_versions = s.report_versions.filter(r => r.report_id !== root_id || r.source_id !== source_id);
+  assert.equal(parseArchive(JSON.stringify(recording)).desk_review_version, 1);
+});
+
+test('desk imports reject future claims, foreign roots, forged receipts, and premature or changed judgments', () => {
+  const changes = [
+    [/审核席记录版本/, s => { delete s.desk_review_version; }],
+    [/审核席记录版本/, s => { s.desk_review_version = 2; }],
+    [/决策记录的内容/, (_, c) => { c.relay.desk_report.claim = 'gap'; }],
+    [/中心尚未持有/, (s, c) => { c.relay.desk_report.root_id = s.report_versions.find(r => r.source_id !== c.relay.desk_report.source_id).report_id; }],
+    [/中心尚未持有/, (_, c) => { c.relay.desk_report.root_sampled_tick++; }],
+    [/中心尚未持有/, (s, c) => {
+      const root = s.report_versions.find(r => r.report_id === c.relay.desk_report.root_id);
+      root.center_received_tick = c.relay.tick;
+      root.version = 2;
+      root.proposal_id = 'prior-case';
+      s.report_versions.find(r => r.report_id === c.supplement.desk_report.id).version = 3;
+      // The origin was received one event after the relay, within the same tick.
+      const next = c.relay.seq + 1;
+      for (const e of s.decision_log) if (e.seq >= next) e.seq++;
+      s.decision_log.splice(s.decision_log.indexOf(c.relay) + 1, 0, {
+        seq: next, tick: c.relay.tick, kind: 'received', proposal_id: root.proposal_id,
+        report_id: root.report_id, sampled_tick: root.sampled_tick,
+      });
+      for (const f of s.history) if (f.decision_seq >= next) f.decision_seq++;
+    }],
+    [/来源、采样或送达/, (_, c) => { c.relay.desk_report.source_id = 'foreign'; }],
+    [/队列顺序/, (_, c) => { c.readRelay.desk_report.root_id = 'changed'; }],
+    [/队列顺序/, (_, c) => { c.readRelay.desk_report.received_tick++; }],
+    [/阅读时刻/, (s, c) => {
+      for (const e of [c.readRelay, c.initialRule, c.initialHuman]) e.tick = c.relay.tick;
+      for (const f of s.history) f.decision_seq = s.decision_log.findLast(e => e.tick <= f.tick).seq;
+    }],
+    [/冻结的已读清单/, (_, c) => { c.initialRule.desk_judgment.read_ids.push(c.supplement.desk_report.id); }],
+    [/引用了未读报告/, (_, c) => { c.initialRule.desk_judgment.evidence_ids = [c.supplement.desk_report.id]; }],
+    [/来源、采样或送达/, (_, c) => { c.supplement.desk_report.received_tick--; }],
+    [/离线缓存记录/, (_, c) => { c.readOriginal.proposal_id = 'different-case'; }],
+    [/冻结结论/, (_, c) => { c.finalRule.desk_judgment.finding = 'continuous'; }],
+    [/决策记录的内容/, (_, c) => { c.finalHuman.desk_judgment.evidence_ids.push(c.supplement.desk_report.id); }],
+    [/决策记录的内容/, (_, c) => { c.finalHuman.desk_judgment.evidence_ids = []; }],
+    [/决策记录的内容/, (_, c) => { c.finalHuman.desk_judgment.actor = 'ai'; }],
+    [/规则判断应在/, (_, c) => { c.finalHuman.desk_judgment.actor = 'rule'; }],
+    [/队列顺序/, (s, c) => { s.decision_log = s.decision_log.filter(e => e !== c.relay); }],
+    [/缺少当时的规则判断/, (s, c) => { s.decision_log = s.decision_log.filter(e => e !== c.finalRule); }],
+    [/补报送达事件/, s => { delete s.decision_log.find(e => e.kind === 'received').evidence; }],
+    [/采样版本不一致/, (s, c) => {
+      s.report_versions.find(r => r.report_id === c.supplement.desk_report.id).proposal_id = 'different-case';
+    }],
+    [/中心收件台账/, (s, c) => {
+      s.decision_log = s.decision_log.filter(e => e.kind !== 'received' && ![c.supplement, c.readOriginal, c.finalRule, c.finalHuman].includes(e));
+    }],
+  ];
+  for (const [reason, change] of changes) {
+    const recording = JSON.parse(example);
+    const s = recording.snapshot;
+    change(s, caseEntries(s.decision_log));
+    assert.throws(() => parseArchive(JSON.stringify(recording)), reason, change.toString());
+  }
 });

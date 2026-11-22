@@ -254,11 +254,85 @@ test('both node views replay the same report revision and their own receipt acro
   }
 
   delete archive.snapshot.report_versions;
+  assert.throws(() => parseArchive(JSON.stringify(archive)), 'a marked desk archive needs its receipt ledger');
+  delete archive.snapshot.desk_review_version;
+  const legacyLog = replay.decision_log.filter(event => !event.kind.startsWith('desk_'));
+  archive.snapshot.decision_log = legacyLog;
   const oldArchive = parseArchive(JSON.stringify(archive));
   assert.equal(oldArchive.report_versions, undefined);
-  assert.deepEqual(oldArchive.decision_log, replay.decision_log);
+  assert.equal(oldArchive.desk_review_version, undefined);
+  assert.deepEqual(oldArchive.decision_log, legacyLog);
   const reset = await post('/api/control', { action: 'reset', value: 20261022 });
   assert.deepEqual(reset.report_versions, initial.report_versions);
+});
+
+test('live desk reads actual outage reports and freezes the basis of each judgment in replay', async () => {
+  const seed = 20261022;
+  const initial = await post('/api/control', { action: 'reset', value: seed });
+  const fault = await post('/api/inject', { kind: 'link_loss' });
+  const source = fault.links.find(link => !link.enabled).from;
+  const task = fault.proposals.find(p => p.action === 'request_observation' && p.subject_id === source);
+  const desk = state => state.decision_log.filter(e => e.proposal_id === task.id && e.kind.startsWith('desk_'));
+  const path = '/api/review-desk/judgments';
+  const step = () => post('/api/control', { action: 'step' });
+  assert.equal(initial.desk_review_version, 1);
+  await step();
+  await post(`/api/proposals/${task.id}/review`, { approve: true });
+  await step();
+  let state = await step();
+  const relay = desk(state)[0].desk_report;
+  const cached = initial.report_versions.find(row => row.source_id === source);
+  assert.deepEqual([relay.kind, relay.root_id, relay.root_sampled_tick, relay.received_tick, relay.claim],
+    ['relay', cached.report_id, cached.sampled_tick, 3, null]);
+  const reportId = state.decision_log.find(e => e.proposal_id === task.id && e.kind === 'buffered').report_id;
+  assert.deepEqual(desk(state).map(e => e.kind), ['desk_received']);
+  const command = (seq, ids) => ({ run_id: initial.run_id, case_id: task.id, expected_read_seq: seq, evidence_ids: ids });
+  await post(path, command(0, [relay.id]), 400);
+  for (let i = 0; i < 3; i++) state = await step();
+  const relayRead = desk(state).find(e => e.kind === 'desk_read');
+  assert.equal(relayRead.tick, 6);
+  assert.equal(relayRead.desk_report.claim, 'continuous');
+  await post(path, command(relayRead.seq, [reportId]), 400);
+  const firstCommand = command(relayRead.seq, [relay.id]);
+  state = await post(path, firstCommand);
+  const frozen = desk(state).at(-1);
+  assert.deepEqual(frozen.desk_judgment, {
+    actor: 'human', finding: 'continuous', read_ids: [relay.id], evidence_ids: [relay.id],
+  });
+  await post(path, firstCommand, 400);
+  await post('/api/inject', { kind: 'recover' });
+  for (let i = 0; i < 3; i++) state = await step();
+  const arrival = desk(state).at(-1);
+  assert.equal(arrival.kind, 'desk_received');
+  assert.deepEqual([arrival.tick, arrival.desk_report.id, arrival.desk_report.received_tick, arrival.desk_report.claim],
+    [9, reportId, 9, null]);
+  assert.equal(state.report_versions.find(v => v.report_id === reportId).center_received_tick, arrival.tick);
+  assert.equal(desk(state).filter(e => e.kind === 'desk_read').length, 1);
+  for (let i = 0; i < 3; i++) state = await step();
+  const secondRead = desk(state).find(e => e.kind === 'desk_read' && e.desk_report.id === reportId);
+  assert.deepEqual([secondRead.tick, secondRead.desk_report.sampled_tick, secondRead.desk_report.claim], [12, 3, 'gap']);
+  const both = [relay.id, reportId];
+  assert.deepEqual(desk(state).at(-1).desk_judgment, { actor: 'rule', finding: 'conflict', read_ids: both, evidence_ids: both });
+  await post(path, command(relayRead.seq, [relay.id]), 400);
+  await post(path, command(secondRead.seq, [reportId, reportId]), 400);
+  const finalCommand = command(secondRead.seq, [reportId]);
+  const submit = () => fetch(base + path, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(finalCommand),
+  });
+  const concurrent = await Promise.all([submit(), submit()]);
+  assert.deepEqual(concurrent.map(r => r.status).sort(), [200, 400]);
+  const recorded = parseArchive(JSON.stringify(await get('/api/export')));
+  assert.equal(recorded.desk_review_version, 1);
+  const judgments = desk(recorded).filter(e => e.kind === 'desk_judged');
+  assert.deepEqual(judgments.find(e => e.seq === frozen.seq), frozen);
+  assert.deepEqual(judgments.at(-1).desk_judgment, { actor: 'human', finding: 'gap', read_ids: both, evidence_ids: [reportId] });
+  assert.equal(judgments.filter(e => e.desk_judgment.actor === 'human').length, 2);
+  const sample = parseArchive(JSON.stringify(await get('/examples/two-node-replay.json')));
+  assert.deepEqual(desk(sample), desk(recorded), 'bundled desk timeline must match the live run');
+  assert.deepEqual(sample.history, recorded.history);
+  await post('/api/control', { action: 'reset', value: seed });
+  await post(path, finalCommand, 409);
+  assert.deepEqual(desk(await get('/api/state')), []);
 });
 
 test('play/pause uses the server clock and single-step refuses to race it', async () => {

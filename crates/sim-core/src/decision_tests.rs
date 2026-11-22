@@ -57,6 +57,67 @@ fn report_for<'a>(engine: &'a Engine, proposal_id: &str) -> &'a ReportVersion {
 }
 
 #[test]
+fn simultaneous_offline_reports_share_one_reading_slot_but_keep_separate_evidence() {
+    let mut engine = Engine::new(20261022);
+    engine.inject("link_loss").unwrap();
+    engine.step();
+    let first = outage_request(&engine);
+    let second = add(&mut engine, "request_observation", "pla-j20");
+    engine
+        .state
+        .links
+        .iter_mut()
+        .find(|l| l.from == "pla-j20")
+        .unwrap()
+        .enabled = false;
+    engine.review(&first, true).unwrap();
+    engine.review(&second, true).unwrap();
+    while engine.state.tick < 9 {
+        engine.step();
+    }
+    let receipts: Vec<_> = engine
+        .state
+        .decision_log
+        .iter()
+        .filter(|e| e.kind == "desk_received")
+        .map(|e| (e.proposal_id.clone(), e.tick))
+        .collect();
+    assert_eq!(receipts, [(first.clone(), 3), (second.clone(), 3)]);
+    let reads: Vec<_> = engine
+        .state
+        .decision_log
+        .iter()
+        .filter(|e| e.kind == "desk_read")
+        .map(|e| {
+            (
+                e.proposal_id.clone(),
+                e.tick,
+                e.seq,
+                e.desk_report.as_ref().unwrap().id.clone(),
+            )
+        })
+        .collect();
+    assert_eq!(reads.len(), 2);
+    assert_eq!((&reads[0].0, reads[0].1), (&first, 6));
+    assert_eq!((&reads[1].0, reads[1].1), (&second, 9));
+    assert!(
+        engine
+            .record_desk_judgment(&first, reads[0].2, std::slice::from_ref(&reads[1].3))
+            .is_err()
+    );
+    engine
+        .record_desk_judgment(&first, reads[0].2, std::slice::from_ref(&reads[0].3))
+        .unwrap();
+    let judgment = facts(&engine, &first)
+        .last()
+        .unwrap()
+        .desk_judgment
+        .as_ref()
+        .unwrap();
+    assert_eq!(judgment.read_ids, [reads[0].3.clone()]);
+}
+
+#[test]
 fn both_desks_start_with_the_same_own_reports_and_only_approved_samples_create_editions() {
     let mut engine = Engine::new(801);
     let initial = engine.current().report_versions.clone();
@@ -393,7 +454,9 @@ fn reinterruption_never_delivers_and_same_tick_recovery_is_bounded() {
         .id
         .clone();
     engine.inject("link_loss").unwrap();
-    assert!(facts(&engine, &id).last().unwrap().kind == "buffered");
+    let group = facts(&engine, &id);
+    assert_eq!(group[group.len() - 2].kind, "buffered");
+    assert_eq!(group.last().unwrap().kind, "desk_received");
     for _ in 0..20 {
         engine.inject("recover").unwrap();
         engine.inject("link_loss").unwrap();
@@ -408,6 +471,13 @@ fn reinterruption_never_delivers_and_same_tick_recovery_is_bounded() {
     for _ in 0..10 {
         engine.step();
     }
+    assert_eq!(
+        facts(&engine, &id)
+            .iter()
+            .filter(|e| e.kind == "desk_received")
+            .count(),
+        1
+    );
     assert!(!engine.state.observations.iter().any(|o| o.id == report_id));
     assert!(
         !facts(&engine, &id)

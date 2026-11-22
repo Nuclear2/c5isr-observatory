@@ -7,6 +7,7 @@ import { UnitSymbol, SymbolLegend } from './UnitSymbol';
 import { symbolDefinition } from './symbology';
 import { deriveMotion, headingLabel, speedLabel } from './motion';
 import DecisionPanel from './DecisionPanel';
+import LiveReviewDesk from './LiveReviewDeskPanel';
 import ReportComparison from './ReportComparisonPanel';
 import { decisionKindNames, eventsAtFrame } from './decisions';
 
@@ -30,8 +31,8 @@ function App() {
   const [search, setSearch] = useState('');
   const [linksVisible, setLinksVisible] = useState(true);
   const [labelsVisible, setLabelsVisible] = useState(true);
-  const [rightTab, setRightTab] = useState<'proposals' | 'inspector' | 'compare'>('proposals');
-  const [historyFrame, setHistoryFrame] = useState<Frame | null>(null);
+  const [rightTab, setRightTab] = useState<'proposals' | 'inspector' | 'compare' | 'desk'>('proposals');
+  const [historyFrame, updateHistoryFrame] = useState<Frame | null>(null);
   const [decisionCursor, setDecisionCursor] = useState<number | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [connectionAttempt, setConnectionAttempt] = useState(0);
@@ -40,6 +41,11 @@ function App() {
   const streamRef = useRef<EventSource | null>(null);
   const runIdRef = useRef<string | null>(null);
   const commandRevisionRef = useRef(0);
+
+  const setHistoryFrame = useCallback((next: Frame | null) => {
+    updateHistoryFrame(next);
+    setDecisionCursor(null);
+  }, []);
 
   const ingest = useCallback((next: Snapshot) => {
     if (runIdRef.current && runIdRef.current !== next.run_id) {
@@ -52,7 +58,7 @@ function App() {
     if (next.running || next.automation.mode === 'ai') setStopResult(null);
     runIdRef.current = next.run_id;
     setState(next);
-  }, []);
+  }, [setHistoryFrame]);
 
   useEffect(() => {
     let active = true;
@@ -221,12 +227,19 @@ function App() {
           <aside className="decision-panel" aria-label="决策辅助与节点详情">
             <div className="panel-heading"><div><span className="eyebrow">DECISION SUPPORT</span><h2>协同决策台</h2></div><Cpu size={18} className="muted" /></div>
             {!historyFrame && <div className="model-box"><div className="model-title"><span className="model-icon"><Sparkles size={15} /></span><div><strong>{isCodex ? 'Codex · ChatGPT 订阅' : '规则基线'}</strong><span>{awaitingModelCleanup ? '停止已确认 · 等待模型进程清理' : modelBusy ? aiMode ? '自治研判中 · 时钟保持' : '正在生成研判…' : state?.model.last_run_tick != null ? `最近研判 ${tickLabel(state.model.last_run_tick)}` : isCodex ? '手动调用 · 尚未完成研判' : '确定性规则提供基础建议'}</span></div><span className={`model-status ${modelBusy ? 'busy' : state?.model.available ? '' : 'unavailable'}`} /> </div><button className="analyze-button" onClick={() => mutate('model', '/api/model/analyze', {})} disabled={disabled || !state?.model.available || modelBusy}>{modelBusy ? <LoaderCircle size={14} className="spin" /> : <Sparkles size={14} />}{awaitingModelCleanup ? '模型进程清理中' : modelBusy ? '研判进行中' : aiMode ? 'AI 信息自治运行中' : '生成模型研判'}<span>{aiMode ? '自动周期' : '手动触发'}</span></button>{state?.model.last_error && <div className="model-error"><TriangleAlert size={12} /><span>{state.model.last_error}</span></div>}<p className="model-note">{state?.model.detail || '正在读取模型接入状态。'} {aiMode ? '仅自动批准本轮校验通过的四类信息任务；规则建议不会被自动批准。' : '人工模式下，所有建议均需人工审批。'}{state && !state.model.available && <span> 若刚完成 codex login，请重启后端刷新状态。</span>}</p></div>}
-            <div className="decision-tabs with-comparison" role="tablist" aria-label="决策台内容">
+            <div className="decision-tabs with-desk" role="tablist" aria-label="决策台内容">
               <button role="tab" aria-selected={rightTab === 'proposals'} onClick={() => setRightTab('proposals')} className={rightTab === 'proposals' ? 'active' : ''}>{historyFrame ? '历史决策' : '建议与记录'}<span>{historyFrame ? decisionEvents.length : pendingProposals.length}</span></button>
               <button role="tab" aria-selected={rightTab === 'compare'} onClick={() => setRightTab('compare')} className={rightTab === 'compare' ? 'active' : ''}>双节点对照</button>
+              <button role="tab" aria-selected={rightTab === 'desk'} onClick={() => setRightTab('desk')} className={rightTab === 'desk' ? 'active' : ''}>审核席</button>
               <button role="tab" aria-selected={rightTab === 'inspector'} onClick={() => setRightTab('inspector')} className={rightTab === 'inspector' ? 'active' : ''}>{historyFrame ? '历史节点' : '节点详情'}</button>
             </div>
-            <div className="decision-content">{!frame ? <div className="empty-state">等待仿真状态…</div> : rightTab === 'compare' ? (
+            <div className="decision-content">{!frame ? <div className="empty-state">等待仿真状态…</div> : rightTab === 'desk' ? (
+              <LiveReviewDesk key={state?.run_id} version={state?.desk_review_version} log={state?.decision_log} frame={frame}
+                historical={Boolean(historyFrame)} cursor={decisionCursor} onCursorChange={setDecisionCursor} disabled={disabled}
+                onSubmit={(caseId, readSeq, ids) => mutate('desk-judgment', '/api/review-desk/judgments', {
+                  run_id: state?.run_id, case_id: caseId, expected_read_seq: readSeq, evidence_ids: ids,
+                })} />
+            ) : rightTab === 'compare' ? (
               <ReportComparison key={state?.run_id} versions={state?.report_versions} frame={frame} history={state?.history ?? []} log={state?.decision_log} onSeek={state && !state.running && !aiMode ? setHistoryFrame : undefined} />
             ) : rightTab === 'proposals' ? <DecisionPanel log={state?.decision_log} frame={frame} cursor={decisionCursor} onCursorChange={setDecisionCursor} historical={Boolean(historyFrame)} liveProposals={state?.proposals} disabled={disabled} onReview={(id, approve) => mutate(id, `/api/proposals/${encodeURIComponent(id)}/review`, { approve })} /> : selectedUnit ? <UnitInspector unit={selectedUnit} frame={frame!} history={state?.history ?? []} historical={Boolean(historyFrame)} /> : <div className="empty-state"><Compass size={28} strokeWidth={1.2} /><strong>{selected && selectedWasContact && !historyFrame ? '所选接触已过期归档' : '选择一个节点或接触'}</strong><p>{selected && selectedWasContact && !historyFrame ? '接触失效表示信息过期，不表示摧毁。后续新接触按新报告显示。' : '点击地图或左侧列表，查看已接入状态与已收到的接触报告。'}</p></div>}</div>
             <div className="decision-foot"><ShieldCheck size={12} /><span>{historyFrame ? '历史记录 · 只读回放 · 冻结依据' : `信息任务 · ${aiMode ? 'AI 限定授权' : '人工审批'} · 来源记录`}</span></div>
@@ -234,7 +247,7 @@ function App() {
         </main>
 
         <section className="timeline-panel" ref={timelineRef} aria-label="实验时间线与事件记录">
-          <div className="playback-row"><div className="playback-buttons"><button className="play-button" disabled={state?.running || aiMode ? stopDisabled : disabled} onClick={() => state?.running || aiMode ? stopAutomation() : control('play')} aria-label={state?.running || aiMode ? '暂停仿真并停止自治' : '开始仿真'} title={state?.running || aiMode ? '暂停仿真并停止自治' : '开始仿真'}>{pending === 'play' || stopping ? <LoaderCircle size={17} className="spin" /> : state?.running || aiMode ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}</button><button className="icon-button" disabled={disabled || state?.running} onClick={() => control('step')} title="推进一个仿真步" aria-label="推进一个仿真步"><SkipForward size={17} /></button><button className="icon-button reset-button" disabled={disabled} onClick={() => { setSelected(null); control('reset'); }} title="重置当前实验" aria-label="重置当前实验"><RefreshCw size={15} /></button><span className="playback-divider" /><label className="speed-select"><select aria-label="仿真播放速度" value={state?.speed ?? 1} disabled={disabled} onChange={event => control('speed', Number(event.target.value))}><option value={1}>1×</option><option value={2}>2×</option><option value={4}>4×</option><option value={8}>8×</option></select><ChevronDown size={11} /></label></div><div className="tick-counter"><span>{tickLabel(frame?.tick ?? 0)}</span><small>SIM TICK</small></div><div className="timeline-track"><div className="timeline-track-label"><span>{state?.history[0] ? tickLabel(state.history[0].tick) : 'T+0000'}</span><span>{historyFrame ? '历史帧 · 操作已锁定' : state?.running ? aiMode && modelBusy ? '研判中 · 仿真时钟保持' : '实验进行中 · 暂停后可回看' : '拖动回看历史帧'}</span><span>{tickLabel(state?.tick ?? 0)}</span></div><input type="range" min="0" max={Math.max(0, (state?.history.length ?? 1) - 1)} value={historyIndex} disabled={!state || state.running || aiMode || state.history.length < 2} onChange={event => { setHistoryFrame(state?.history[Number(event.target.value)] ?? null); setRightTab(current => current === 'compare' ? 'compare' : 'proposals'); }} aria-label="历史帧回看" /></div><button className={`return-live ${historyFrame ? 'is-history' : ''}`} onClick={() => setHistoryFrame(null)} disabled={!historyFrame}><span className="small-dot" />{historyFrame ? '返回实时' : '实时'}{historyFrame && <ArrowRight size={12} />}</button></div>
+          <div className="playback-row"><div className="playback-buttons"><button className="play-button" disabled={state?.running || aiMode ? stopDisabled : disabled} onClick={() => state?.running || aiMode ? stopAutomation() : control('play')} aria-label={state?.running || aiMode ? '暂停仿真并停止自治' : '开始仿真'} title={state?.running || aiMode ? '暂停仿真并停止自治' : '开始仿真'}>{pending === 'play' || stopping ? <LoaderCircle size={17} className="spin" /> : state?.running || aiMode ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}</button><button className="icon-button" disabled={disabled || state?.running} onClick={() => control('step')} title="推进一个仿真步" aria-label="推进一个仿真步"><SkipForward size={17} /></button><button className="icon-button reset-button" disabled={disabled} onClick={() => { setSelected(null); control('reset'); }} title="重置当前实验" aria-label="重置当前实验"><RefreshCw size={15} /></button><span className="playback-divider" /><label className="speed-select"><select aria-label="仿真播放速度" value={state?.speed ?? 1} disabled={disabled} onChange={event => control('speed', Number(event.target.value))}><option value={1}>1×</option><option value={2}>2×</option><option value={4}>4×</option><option value={8}>8×</option></select><ChevronDown size={11} /></label></div><div className="tick-counter"><span>{tickLabel(frame?.tick ?? 0)}</span><small>SIM TICK</small></div><div className="timeline-track"><div className="timeline-track-label"><span>{state?.history[0] ? tickLabel(state.history[0].tick) : 'T+0000'}</span><span>{historyFrame ? '历史帧 · 操作已锁定' : state?.running ? aiMode && modelBusy ? '研判中 · 仿真时钟保持' : '实验进行中 · 暂停后可回看' : '拖动回看历史帧'}</span><span>{tickLabel(state?.tick ?? 0)}</span></div><input type="range" min="0" max={Math.max(0, (state?.history.length ?? 1) - 1)} value={historyIndex} disabled={!state || state.running || aiMode || state.history.length < 2} onChange={event => { setHistoryFrame(state?.history[Number(event.target.value)] ?? null); setRightTab(current => current === 'inspector' ? 'proposals' : current); }} aria-label="历史帧回看" /></div><button className={`return-live ${historyFrame ? 'is-history' : ''}`} onClick={() => setHistoryFrame(null)} disabled={!historyFrame}><span className="small-dot" />{historyFrame ? '返回实时' : '实时'}{historyFrame && <ArrowRight size={12} />}</button></div>
           <div className="event-strip">
             <div className="event-heading"><Clock3 size={13} /><span>{historyFrame ? '历史决策' : '事件流'}</span><span className="event-count">{historyFrame ? decisionEvents.length : state?.events.length ?? 0}</span></div>
             <div className="event-list">{historyFrame ? <>{decisionEvents.slice(-3).reverse().map(event => <div key={event.seq} className="event-item"><span>#{event.seq} · {tickLabel(event.tick)}</span><i className={['dropped', 'expired', 'stale'].includes(event.kind) ? 'warning' : ''} /><p title={event.note ?? decisionKindNames[event.kind]}>{decisionKindNames[event.kind]}{event.report_id ? ` · ${event.report_id}` : ''}{event.note ? ` · ${event.note}` : ''}</p></div>)}{!decisionEvents.length && <span className="event-empty">{frame?.decision_seq == null ? '此数据没有决策序列记录' : '当前截止位置尚无决策事件'}</span>}</> : <>{(state?.events ?? []).slice(-3).reverse().map(event => <div key={event.id} className="event-item"><span>{tickLabel(event.tick)}</span><i className={event.kind.includes('error') || event.kind.includes('loss') || event.kind.includes('drop') ? 'warning' : ''} /><p title={event.message}>{event.message}</p></div>)}{!state?.events.length && <span className="event-empty">实验事件将在这里记录</span>}</>}</div>

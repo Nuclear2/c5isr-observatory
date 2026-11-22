@@ -1,4 +1,5 @@
 import type { DecisionEvent, Frame, Link, Observation, Proposal, ReportVersion, Unit } from '../contracts/state';
+import { isDeskEventPayload, validateDeskHistory } from './deskArchive.ts';
 
 export const MAX_ARCHIVE_BYTES = 64 * 1024 * 1024;
 
@@ -54,7 +55,8 @@ function isProposal(v: unknown): v is Proposal {
 function isDecision(v: unknown): v is DecisionEvent {
   if (!record(v) || !tick(v.seq) || v.seq === 0 || !tick(v.tick) || !string(v.proposal_id)) return false;
   const at = v.tick;
-  return oneOf(v.kind, ['created', 'approved', 'rejected', 'executing', 'completed', 'stale', 'buffered', 'sent', 'received', 'dropped', 'expired'])
+  return oneOf(v.kind, ['created', 'approved', 'rejected', 'executing', 'completed', 'stale', 'buffered', 'sent', 'received', 'dropped', 'expired', 'desk_received', 'desk_read', 'desk_judged'])
+    && isDeskEventPayload(v)
     && (v.actor == null || oneOf(v.actor, ['human', 'ai']))
     && (v.proposal == null || (isProposal(v.proposal) && v.proposal.id === v.proposal_id && v.proposal.created_tick <= at))
     && (v.evidence == null || (Array.isArray(v.evidence) && v.evidence.every(o => isObservation(o) && o.received_tick <= at)))
@@ -105,7 +107,7 @@ export function parseArchive(text: string) {
   return parseArchiveData(file);
 }
 
-export function parseArchiveData(file: unknown): { history: Frame[]; decision_log: DecisionEvent[]; report_versions?: ReportVersion[] } {
+export function parseArchiveData(file: unknown): { history: Frame[]; decision_log: DecisionEvent[]; report_versions?: ReportVersion[]; desk_review_version?: 1 } {
   if (!record(file) || file.kind !== 'c5isr-synthetic-experiment' || file.schema_version !== 1 || !record(file.snapshot)) {
     throw new Error('无法识别实验归档类型或版本。');
   }
@@ -141,8 +143,14 @@ export function parseArchiveData(file: unknown): { history: Frame[]; decision_lo
     if (idx < decisions.length && decisions[idx].tick < frame.tick) throw new Error('历史帧缺少此前已发生的决策。');
   }
   if (idx !== decisions.length) throw new Error('实验归档包含超出最后一帧的决策。');
-  if (file.snapshot.report_versions !== undefined) {
-    return { history, decision_log: decisions, report_versions: readReportVersions(file.snapshot.report_versions, history[history.length - 1]) };
+  const marker = file.snapshot.desk_review_version;
+  const lastFrame = history[history.length - 1];
+  const versions = file.snapshot.report_versions === undefined ? undefined : readReportVersions(file.snapshot.report_versions, lastFrame);
+  if (marker === 1 && Array.isArray(decision_log) && versions !== undefined) {
+    validateDeskHistory(decisions, versions, lastFrame, history[0].tick);
+  } else if (marker !== undefined || decisions.some(event => event.kind.startsWith('desk_'))) {
+    throw new Error('审核席记录版本、决策序列或双节点收件记录缺失或不受支持。');
   }
-  return { history, decision_log: decisions };
+  return { history, decision_log: decisions, ...(versions && { report_versions: versions }),
+    ...(marker === 1 && { desk_review_version: marker }) };
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { ArrowRight, Check, ChevronRight, CircleDot, History, Network, ShieldCheck, Sparkles, TriangleAlert } from 'lucide-react';
 import type { DecisionEvent, Frame, Observation, Proposal } from '../contracts/state';
 import { decisionKindNames, eventsAtFrame, latestReportEvents, rebuildDecisions } from './decisions';
@@ -37,6 +37,8 @@ export function DecisionEventItem({ event, frame, showProposal = false }: { even
     <div className="decision-event-main"><div className="decision-event-heading"><strong>{decisionKindNames[event.kind]}</strong><span>#{event.seq} · {tick(event.tick)}</span></div>
       {showProposal && <p className="decision-event-proposal">{event.proposal?.title ?? (event.proposal_id || '未关联提案')}</p>}
       {review && <p>{actorName(event.actor)}</p>}
+      {event.desk_report && <p>{event.desk_report.kind === 'relay' ? '断链转述' : '现场补报'} · {event.desk_report.id}</p>}
+      {event.desk_judgment && <p>{event.desk_judgment.actor === 'human' ? '人工判断' : '规则判断'} · 引用 {event.desk_judgment.evidence_ids.join('、')}</p>}
       {event.report_id && <p className="report-reference">{event.report_id}{event.sampled_tick != null && ` · 采样 ${tick(event.sampled_tick)}`}{event.kind === 'received' && ` · 实际送达 ${tick(event.tick)}`}</p>}
       {event.note && <p>{event.note}</p>}
       {['created', 'approved', 'rejected', 'received'].includes(event.kind) && <details><summary>{event.kind === 'received' ? '查看实际送达报告' : '查看该事件冻结依据'}</summary>{event.evidence == null ? <p>此事件没有保存证据正文。</p> : !event.evidence.length ? <p>该事件未附独立报告。</p> : event.evidence.filter(report => report.received_tick <= event.tick).map(report => <EvidenceReport key={report.id} observation={report} frame={frame} atTick={event.tick} ageLabel="事件发生时信息年龄" />)}</details>}
@@ -68,26 +70,35 @@ function DecisionCard({ record, frame, historical, disabled, onReview }: { recor
   </article>;
 }
 
-export default function DecisionPanel({ log, frame, historical, liveProposals = [], disabled = true, onReview, cursor: suppliedCursor, onCursorChange }: {
+export function DecisionCutoff({ frame, events, cursor, onChange }: {
+  frame: Frame; events: DecisionEvent[]; cursor: number | null; onChange: (cursor: number | null) => void;
+}) {
+  const end = frame.decision_seq ?? 0;
+  const sameTick = events.filter(event => event.tick === frame.tick);
+  return <div className="decision-cursor"><label>决策截止<select value={cursor ?? end} aria-label="同一步内的决策事件截止位置" onChange={event => {
+    const seq = Number(event.target.value);
+    onChange(seq === end ? null : seq);
+  }}><option value={end}>帧末 · #{end}</option>
+    {sameTick.length > 0 && <option value={sameTick[0].seq - 1}>本步首个保留事件前 · #{sameTick[0].seq - 1}</option>}
+    {sameTick.filter(event => event.seq !== end).map(event => <option key={event.seq} value={event.seq}>#{event.seq} · {decisionKindNames[event.kind]}</option>)}
+  </select></label><small>地图显示 {tick(frame.tick)} 帧末，记录截止 #{cursor ?? end}。</small></div>;
+}
+
+export default function DecisionPanel({ log, frame, historical, liveProposals = [], disabled = true, onReview, cursor = null, onCursorChange }: {
   log?: DecisionEvent[]; frame: Frame; historical: boolean; liveProposals?: Proposal[]; disabled?: boolean; onReview?: (id: string, approve: boolean) => void;
   cursor?: number | null; onCursorChange?: (cursor: number | null) => void;
 }) {
   const [view, setView] = useState<'cards' | 'events'>('cards');
-  const [localCursor, setLocalCursor] = useState<number | null>(null);
-  const cursor = suppliedCursor === undefined ? localCursor : suppliedCursor;
-  const setCursor = onCursorChange ?? setLocalCursor;
-  useEffect(() => setCursor(null), [frame.tick, frame.decision_seq, historical, setCursor]);
   const hasRecord = Array.isArray(log) && typeof frame.decision_seq === 'number' && Number.isSafeInteger(frame.decision_seq);
   const frameSeq = frame.decision_seq ?? 0;
   const frameEvents = eventsAtFrame(log, frame);
-  const sameTick = frameEvents.filter(event => event.tick === frame.tick);
   const effectiveCursor = historical && cursor != null ? Math.min(cursor, frameSeq) : null;
   const events = eventsAtFrame(log, frame, effectiveCursor);
   const records = hasRecord ? rebuildDecisions(events) : historical ? [] : liveProposals.map(proposal => ({ proposal, events: [], evidence: null, recorded: false }));
   return <div className="decision-audit">
     <div className="decision-audit-toolbar"><div role="group" aria-label="决策记录视图"><button className={view === 'cards' ? 'active' : ''} onClick={() => setView('cards')}>建议 {records.length}</button><button className={view === 'events' ? 'active' : ''} onClick={() => setView('events')}>事件 {events.length}</button></div><span>{historical ? `${tick(frame.tick)} · 历史` : '实时记录'}</span></div>
     {!hasRecord && <div className="audit-notice"><History size={13} /><span>此数据没有决策序列记录，无法回放当时的依据与审核过程。</span></div>}
-    {historical && hasRecord && <div className="decision-cursor"><label>决策截止<select value={effectiveCursor ?? frameSeq} aria-label="同一步内的决策事件截止位置" onChange={event => setCursor(Number(event.target.value))}><option value={frameSeq}>帧末 · #{frameSeq}</option>{sameTick.filter(event => event.seq !== frameSeq).map(event => <option key={event.seq} value={event.seq}>#{event.seq} · {decisionKindNames[event.kind]}</option>)}</select></label><small>地图为 {tick(frame.tick)} 帧末；仅决策记录回看到 #{effectiveCursor ?? frameSeq}。</small></div>}
+    {historical && hasRecord && onCursorChange && <DecisionCutoff frame={frame} events={frameEvents} cursor={effectiveCursor} onChange={onCursorChange} />}
     {view === 'cards' ? records.length ? records.map(record => <DecisionCard key={record.proposal.id} record={record} frame={frame} historical={historical} disabled={disabled || !liveProposals.some(proposal => proposal.id === record.proposal.id && proposal.status === 'pending')} onReview={onReview} />) : <div className="empty-state"><ShieldCheck size={25} strokeWidth={1.3} /><strong>{hasRecord ? '此时尚无建议记录' : '没有可回放的建议'}</strong><p>{historical ? '只显示截止当前序号已经发生的决策。' : '推进仿真或注入链路中断，观察建议与报告传输。'}</p></div> : events.length ? <ol className="decision-event-list all-decision-events">{events.map(event => <DecisionEventItem key={event.seq} event={event} frame={frame} showProposal />)}</ol> : <div className="empty-small">此范围内没有决策事件。</div>}
   </div>;
 }

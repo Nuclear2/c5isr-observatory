@@ -5,6 +5,9 @@ import type { LabArchive } from '../contracts/evidence';
 import type { StrategyStudy } from '../contracts/strategy';
 import { parseStrategyStudy } from './strategyArchive';
 import { StrategyStudyPanel } from './StrategyStudyPanel';
+import type { ReceiptStudy } from '../contracts/receipt';
+import { ReceiptEntry, ReceiptStudyPanel } from './ReceiptStudyPanel';
+import { parseReceiptStudy } from './receiptArchive';
 import { parseEvidenceArchiveData, MAX_LAB_ARCHIVE_BYTES } from './evidenceArchive';
 import EvidenceLab from './EvidenceLab';
 import DecisionPanel from './DecisionPanel';
@@ -18,6 +21,7 @@ export default function ArchiveViewer() {
   const [archive, setArchive] = useState<ReturnType<typeof parseArchive> | null>(null);
   const [evidence, setEvidence] = useState<LabArchive | null>(null);
   const [study, setStudy] = useState<StrategyStudy | null>(null);
+  const [receiptStudy, setReceiptStudy] = useState<ReceiptStudy | null>(null);
   const [filename, setFilename] = useState('');
   const [error, setError] = useState<string | null>(example !== null && example !== 'two-node' ? '找不到指定的回放示例。' : null);
   const [loading, setLoading] = useState(example === 'two-node');
@@ -76,6 +80,10 @@ export default function ArchiveViewer() {
         setStudy(parseStrategyStudy(data));
         return;
       }
+      if (data && typeof data === 'object' && 'kind' in data && data.kind === 'c5isr-receipt-study') {
+        setReceiptStudy(parseReceiptStudy(data));
+        return;
+      }
       const parsed = parseArchiveData(data);
       if (!parsed.history.length) throw new Error('文件没有可回放的历史帧。');
       setArchive(parsed); setFilename(file.name); seek(0); setSelected(null); setView('decisions');
@@ -96,7 +104,7 @@ export default function ArchiveViewer() {
     <p className="archive-intro">文件仅在本标签页读取，不上传、不调用模型，也不改变正在运行的实验。{filename && <strong>{filename}</strong>}</p>
     {error && <div className="error-banner" role="alert"><TriangleAlert size={15} /><span>无法载入：{error}</span></div>}
     {!frame || !archive ? <main className="archive-empty"><History size={46} strokeWidth={1} /><h2>{loading ? '正在读取回放' : '打开已导出的实验记录'}</h2><p>回看合成态势、冻结报告、人工与 AI 审核和实际送达过程。</p>{!loading && <a className="archive-readonly" href="/?view=archive&amp;example=two-node"><History size={14} />打开双节点断链补报示例</a>}</main> : <>
-      <main className="archive-grid"><section className="archive-map-panel"><div className="map-toolbar"><div className="map-title"><History size={14} /><h2>澄海实验区 · 历史</h2><span className="map-code">T+{frame.tick.toString().padStart(4, '0')}</span></div><div className="map-layer-tools"><button className={`layer-button ${links ? 'active' : ''}`} onClick={() => setLinks(value => !value)} aria-pressed={links}><Network size={14} />链路</button><button className={`layer-button ${labels ? 'active' : ''}`} onClick={() => setLabels(value => !value)} aria-pressed={labels}><Layers3 size={14} />标签</button></div></div><SituationMap frame={frame} history={archive.history} selected={selected} onSelect={id => { setSelected(id); setView('inspector'); }} linksVisible={links} labelsVisible={labels} running={false} /><div className="archive-frame-summary"><span>合成参数 · 虚构区域</span><span>{frame.units.length} 个当时可见节点 · 决策截止 {frame.decision_seq == null ? '未记录' : `#${frame.decision_seq}`}</span></div></section>
+      <main className="archive-grid"><section className="archive-map-panel"><div className="map-toolbar"><div className="map-title"><History size={14} /><h2>澄海实验区 · 历史</h2><span className="map-code">T+{frame.tick.toString().padStart(4, '0')}</span></div><div className="map-layer-tools"><button className={`layer-button ${links ? 'active' : ''}`} onClick={() => setLinks(value => !value)} aria-pressed={links}><Network size={14} />链路</button><button className={`layer-button ${labels ? 'active' : ''}`} onClick={() => setLabels(value => !value)} aria-pressed={labels}><Layers3 size={14} />标签</button></div></div><SituationMap frame={frame} history={archive.history} selected={selected} onSelect={id => { setSelected(id); setView('inspector'); }} linksVisible={links} labelsVisible={labels} running={false} /><div className="archive-frame-summary"><span>合成参数 · 虚构区域</span><span>{frame.units.length} 个当时可见节点{view !== 'desk' && <> · 决策截止 {frame.decision_seq == null ? '未记录' : `#${frame.decision_seq}`}</>}</span></div></section>
         <aside className="archive-decision-panel">
           <div className="decision-tabs with-desk" role="tablist" aria-label="回放内容">
             <button role="tab" aria-selected={view === 'decisions'} className={view === 'decisions' ? 'active' : ''} onClick={() => setView('decisions')}>决策与报告</button>
@@ -105,6 +113,9 @@ export default function ArchiveViewer() {
             <button role="tab" aria-selected={view === 'inspector'} className={view === 'inspector' ? 'active' : ''} onClick={() => setView('inspector')}>历史节点</button>
           </div>
           <div className="archive-decision-content">
+            {(view === 'compare' || view === 'desk') && <ReceiptEntry key={filename}
+              access={{ mode: 'archive', studies: archive.receipt_studies ?? [] }}
+              frame={frame} log={archive.decision_log} cursor={view === 'desk' ? decisionCursor : null} />}
             {view === 'desk' ? (
               <LiveReviewDesk version={archive.desk_review_version} log={archive.decision_log} frame={frame}
                 strategy={{ mode: 'archive', studies: archive.strategy_studies ?? [] }}
@@ -117,5 +128,6 @@ export default function ArchiveViewer() {
       <section className="archive-timeline" aria-label="本地记录时间线"><button className="icon-button" disabled={index === 0} onClick={() => seek(index - 1)} aria-label="上一历史帧"><ChevronLeft size={20} /></button><label><span>T+{frame.tick} · 第 {index + 1} / {archive.history.length} 帧</span><input type="range" min="0" max={archive.history.length - 1} value={index} onChange={event => seek(Number(event.target.value))} aria-label="选择归档历史帧" disabled={archive.history.length < 2} /></label><button className="icon-button" disabled={index === archive.history.length - 1} onClick={() => seek(index + 1)} aria-label="下一历史帧"><ChevronRight size={20} /></button></section>
     </>}
     {study && <StrategyStudyPanel study={study} onClose={() => setStudy(null)} returnLabel="返回归档页" />}
+    {receiptStudy && <ReceiptStudyPanel study={receiptStudy} onClose={() => setReceiptStudy(null)} />}
   </div>;
 }

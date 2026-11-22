@@ -1,9 +1,21 @@
 //! The reviewer's view of synthetic collector continuity during an uplink outage.
 //! Receipt, reading, and assessment each append their own immutable, ordered fact.
-use super::{DecisionEvent, Engine, Observation};
+use super::{DecisionEvent, Engine, Observation, Proposal, REPORT_MAX_AGE};
 use serde::{Deserialize, Serialize};
 
 pub(super) const READ_INTERVAL: u64 = 3;
+
+pub(super) fn expected_sample_tick(execution_tick: u64) -> u64 {
+    execution_tick + 1
+}
+
+#[derive(Clone, Debug)]
+pub(super) struct DeskExpectation {
+    pub(super) case_id: String,
+    source_id: String,
+    expected_tick: u64,
+    execution_seq: u64,
+}
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -87,39 +99,68 @@ impl Engine {
             .any(|e| e.proposal_id == case_id && e.kind == "desk_received")
     }
 
-    pub(super) fn receive_desk_relay(&mut self, case_id: &str, sample: &Observation) {
-        if self.has_desk_case(case_id) {
-            return;
+    pub(super) fn schedule_desk_expectation(&mut self, request: &Proposal) {
+        self.desk_expectations.push(DeskExpectation {
+            case_id: request.id.clone(),
+            source_id: request.subject_id.clone(),
+            expected_tick: expected_sample_tick(self.state.tick),
+            execution_seq: self.decision_seq,
+        });
+    }
+
+    pub(super) fn check_desk_expectations(&mut self) {
+        let now = self.state.tick;
+        for plan in std::mem::take(&mut self.desk_expectations) {
+            if now.saturating_sub(plan.expected_tick) >= REPORT_MAX_AGE {
+                continue;
+            }
+            let offline = self
+                .state
+                .links
+                .iter()
+                .any(|link| link.from == plan.source_id && !link.enabled);
+            if now >= plan.expected_tick && offline && !self.has_desk_case(&plan.case_id) {
+                self.receive_desk_relay(&plan);
+            }
+            self.desk_expectations.push(plan);
         }
-        // Traverse only editions issued before this sample. A delayed older
-        // packet can be interrupted after a newer edition has already arrived.
-        let issued = self
-            .state
-            .report_versions
+    }
+
+    pub(super) fn expects_desk_receipt(&self, source_id: &str) -> bool {
+        self.desk_expectations
             .iter()
-            .position(|r| r.report_id == sample.id)
-            .expect("buffered supplement has a retained edition");
-        let cached = self.state.report_versions[..issued]
-            .iter()
-            .rev()
-            .find(|r| r.source_id == sample.source_id && r.center_received_tick.is_some())
-            .expect("own source has a previously received edition");
+            .any(|plan| plan.source_id == source_id)
+    }
+
+    fn receive_desk_relay(&mut self, plan: &DeskExpectation) {
+        // The centre can quote a prior receipt even if the remote job never ran.
+        let Some(cached) = self.state.report_versions.iter().rev().find(|r| {
+            r.center_received_tick.is_some()
+                && r.source_id == plan.source_id
+                && r.sampled_tick < plan.expected_tick
+        }) else {
+            return;
+        };
+        let case_id = &plan.case_id;
         self.enqueue_desk_report(
             case_id,
             DeskReport {
                 id: format!("relay-{case_id}"),
-                source_id: sample.source_id.clone(),
+                source_id: plan.source_id.clone(),
                 kind: DeskReportKind::Relay,
                 root_id: cached.report_id.clone(),
                 root_sampled_tick: cached.sampled_tick,
-                sampled_tick: sample.observed_tick,
+                sampled_tick: plan.expected_tick,
                 received_tick: self.state.tick,
                 claim: None,
             },
+            Some(plan.execution_seq),
         );
     }
 
     pub(super) fn receive_desk_supplement(&mut self, case_id: &str, sample: &Observation) {
+        self.desk_expectations
+            .retain(|plan| plan.case_id != case_id);
         if self.has_desk_case(case_id) {
             self.enqueue_desk_report(
                 case_id,
@@ -133,13 +174,20 @@ impl Engine {
                     received_tick: sample.received_tick,
                     claim: None,
                 },
+                None,
             );
         }
     }
 
-    fn enqueue_desk_report(&mut self, case_id: &str, mut report: DeskReport) {
+    fn enqueue_desk_report(
+        &mut self,
+        case_id: &str,
+        mut report: DeskReport,
+        expectation: Option<u64>,
+    ) {
         self.push_decision_event(DecisionEvent {
             desk_report: Some(report.clone()),
+            desk_expectation_seq: expectation,
             ..DecisionEvent::new(self.state.tick, case_id, "desk_received")
         });
         report.claim = Some(self.edition_claims[&report.root_id]);
@@ -269,6 +317,71 @@ mod tests {
             .iter()
             .filter(|e| e.proposal_id == case && e.kind == kind)
             .collect()
+    }
+
+    #[test]
+    fn identical_centre_receipts_give_identical_readings_when_the_remote_job_never_runs() {
+        let (mut sampled, case) = start_case(20261022);
+        advance(&mut sampled, 2);
+        let mut delayed = sampled.clone();
+        delayed.executions.retain(|(id, _)| id != &case);
+        advance(&mut sampled, 6);
+        advance(&mut delayed, 6);
+        assert_eq!(entries(&sampled, &case, "buffered").len(), 1);
+        assert!(entries(&delayed, &case, "buffered").is_empty());
+        assert!(
+            !delayed
+                .state
+                .report_versions
+                .iter()
+                .any(|version| version.proposal_id.as_deref() == Some(case.as_str()))
+        );
+        for kind in ["desk_received", "desk_read", "desk_judged"] {
+            let facts = |engine: &Engine| {
+                entries(engine, &case, kind)
+                    .into_iter()
+                    .map(|e| {
+                        (
+                            e.tick,
+                            e.desk_expectation_seq,
+                            e.desk_report.clone(),
+                            e.desk_judgment.clone(),
+                        )
+                    })
+                    .collect::<Vec<_>>()
+            };
+            assert_eq!(facts(&sampled), facts(&delayed));
+            assert_eq!(facts(&delayed).len(), 1);
+        }
+        let relay = entries(&delayed, &case, "desk_received")[0];
+        let execution = entries(&delayed, &case, "executing")[0];
+        assert_eq!(relay.desk_expectation_seq, Some(execution.seq));
+        assert_eq!(
+            relay.desk_report.as_ref().unwrap().sampled_tick,
+            expected_sample_tick(execution.tick)
+        );
+    }
+
+    #[test]
+    fn repeating_the_outage_does_not_probe_the_field_queue() {
+        let (mut cached, case) = start_case(20261022);
+        advance(&mut cached, 6);
+        let mut missing = cached.clone();
+        missing
+            .queue
+            .retain(|m| m.proposal_id.as_deref() != Some(case.as_str()));
+        for engine in [&mut cached, &mut missing] {
+            engine.inject("link_loss").unwrap();
+            advance(engine, 18);
+            let requests = engine
+                .state
+                .proposals
+                .iter()
+                .filter(|p| p.action == "request_observation" && p.subject_id == "pla-kj700")
+                .count();
+            assert_eq!(requests, 1);
+            assert!(engine.expects_desk_receipt("pla-kj700"));
+        }
     }
 
     #[test]

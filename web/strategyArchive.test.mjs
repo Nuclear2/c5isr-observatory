@@ -20,6 +20,7 @@ test('all five saved comparisons can be imported standalone or with their actual
   delete legacy.strategy_studies;
   assert.equal(parseArchiveData(legacy).strategy_studies, undefined);
   const clipped = structuredClone(example);
+  delete clipped.receipt_studies;
   clipped.snapshot.history.shift();
   assert.deepEqual(parseArchiveData(clipped).strategy_studies, example.strategy_studies,
     'an already-recorded attachment retains its original outage after the parent window rolls');
@@ -90,6 +91,7 @@ test('attachments must trace back to the same conflict, source reports and fault
   parseStrategyStudy(noReply);
   assert.throws(() => parseArchiveData(mismatched), /现场底稿不一致/);
   const differingHistory = structuredClone(example);
+  delete differingHistory.receipt_studies;
   differingHistory.snapshot.history.shift();
   const other = differingHistory.strategy_studies.find(s => s.material === 'copy');
   other.link_events[0].seq--;

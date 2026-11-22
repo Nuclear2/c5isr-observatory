@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, History, Inbox } from 'lucide-react';
 import type { DecisionEvent, Frame } from '../contracts/state';
-import { DecisionCutoff } from './DecisionPanel';
 import { decisionKindNames, eventsAtFrame } from './decisions';
 import { reviewCases } from './liveReviewDesk';
 import type { DeskEntry, FrozenJudgment, ReviewCase } from './liveReviewDesk';
@@ -30,7 +29,7 @@ function JudgmentRow({ record }: { record: FrozenJudgment }) {
   const { judgment } = record;
   return <details className="desk-judgment">
     <summary>
-      <span>{at(record.tick)} · #{record.seq} · {judgment.actor === 'human' ? '人工判断' : '规则判断'}</span>
+      <span>{at(record.tick)} · {judgment.actor === 'human' ? '人工判断' : '规则判断'}</span>
       <strong className={judgment.finding === 'conflict' ? 'desk-conflict' : ''}>{claims[judgment.finding]}</strong>
       <small>已读 {judgment.read_ids.length} 份 · 引用 {judgment.evidence_ids.length} 份</small>
     </summary>
@@ -72,25 +71,39 @@ export default function LiveReviewDesk({ log, frame, version, historical, cursor
   }
   const frameEvents = eventsAtFrame(log, frame);
   const cutoff = historical ? cursor : null;
+  const recordedCases = new Set(frameEvents.filter(event => event.kind === 'desk_received').map(event => event.proposal_id));
+  const deskEvents = frameEvents.filter(event => event.tick === frame.tick && (event.kind.startsWith('desk_')
+    || event.kind === 'received' && recordedCases.has(event.proposal_id)));
+  const selectedEvent = cutoff === null ? 'end' : String(deskEvents.filter(event => event.seq <= cutoff).length);
   const cases = reviewCases(cutoff === null ? frameEvents : frameEvents.filter(event => event.seq <= cutoff));
   const item = cases.find(candidate => candidate.id === selectedId) ?? cases[0];
   const fork = item?.judgments.find(j => j.judgment.actor === 'rule' && j.judgment.finding === 'conflict');
   const read = item?.entries.filter(e => e.readTick !== null) ?? [];
   const findings = new Set(read.map(e => e.report.claim));
   const conflict = findings.size > 1;
+  const receipt = item?.centerReceipt;
   const source = item?.entries[0].report.source_id;
   const sourceLabel = frame.units.find(u => u.id === source)?.model_label ?? source;
   return <section className="live-desk" aria-label="审核席收件与判断">
-    {historical && <DecisionCutoff frame={frame} events={frameEvents} cursor={cutoff} onChange={onCursorChange} />}
+    {historical && <div className="decision-cursor"><label>审核席记录截止
+      <select aria-label="同一步内的决策事件截止位置" value={deskEvents.length ? selectedEvent : 'end'} onChange={event => {
+        const value = event.target.value;
+        onCursorChange(value === 'end' ? null : value === '0' ? deskEvents[0].seq - 1 : deskEvents[Number(value) - 1].seq);
+      }}>
+        <option value="end">本步结束</option>
+        {!!deskEvents.length && <option value="0">本步首条审核席记录前</option>}
+        {deskEvents.map((event, index) => <option key={event.seq} value={index + 1}>{index + 1} · {decisionKindNames[event.kind]}</option>)}
+      </select></label></div>}
     {item ? <>
-      <div className="desk-line desk-heading"><h3><Inbox size={15} />采集连续性复核</h3><small>{at(frame.tick)} · #{cutoff ?? frame.decision_seq}</small></div>
+      <div className="desk-line desk-heading"><h3><Inbox size={15} />采集连续性复核</h3><small>{at(frame.tick)}</small></div>
       <label className="desk-case">关联补报任务
         <select aria-label="审核席复核任务" value={item.id} onChange={e => setSelectedId(e.target.value)}>{cases.map(c => <option key={c.id} value={c.id}>{c.id} · {at(c.entries[0].report.sampled_tick)}</option>)}</select>
       </label>
       <div className="desk-line"><span>{sourceLabel} · {at(item.entries[0].report.sampled_tick)}</span>
         <span className={conflict ? 'desk-conflict' : 'desk-read'}>{conflict ? '已读证据冲突' : !read.length ? '等待阅读' : read.length === 1 ? '单份报告 · 暂定' : '已读报告一致'}</span>
       </div>
-      {item.transport && <p className="desk-footnote">补报传输 · {decisionKindNames[item.transport.kind]} {at(item.transport.tick)}</p>}
+      {item.entries[0].expected && <p className="desk-footnote">中心根据已发出的采样请求，预计现场在 {at(item.entries[0].report.sampled_tick)} 采样。</p>}
+      <p className="desk-footnote">{receipt ? <>中心于 {at(receipt.receivedTick)} 收到 <code>{receipt.id}</code>，信封记载现场于 {at(receipt.sampledTick)} 采样。</> : '中心尚未收到现场采样回执。'}</p>
       {fork && strategy && <StrategyEntry key={`${item.id}-${fork.seq}`} access={strategy} caseId={item.id} seq={fork.seq} />}
       <h4>审核席收件箱 <small>已读 {read.length} / 已收 {item.entries.length}</small></h4>
       <ul className="desk-inbox">{item.entries.map(entry => <ReportRow key={entry.report.id} entry={entry} />)}</ul>
@@ -98,6 +111,6 @@ export default function LiveReviewDesk({ log, frame, version, historical, cursor
       {item.judgments.length ? [...item.judgments].reverse().map(record => <JudgmentRow key={record.seq} record={record} />) :
         <p className="desk-footnote">截至所示时点尚无判断。</p>}
       {!historical && onSubmit && <ManualJudgment key={`${item.id}-${item.lastReadSeq}`} item={item} submit={onSubmit} disabled={disabled} />}
-    </> : <div className="empty-state"><Inbox size={24} /><strong>审核席尚未收件</strong><p>{historical ? '所选时点没有已收的断链转述。' : '断链时批准补充采样，样本离线暂存后可在此查看转述与后续补报。'}</p></div>}
+    </> : <div className="empty-state"><Inbox size={24} /><strong>审核席尚未收件</strong><p>{historical ? '所选时点没有已收的断链转述。' : '断链时批准补充采样，可在此查看中心转述和随后收到的现场补报。'}</p></div>}
   </section>;
 }

@@ -2865,15 +2865,7 @@
         "tick": 2
       },
       {
-        "kind": "buffered",
-        "note": "链路离线，补充样本留在本地暂存；尚未接收",
-        "proposal_id": "proposal-00003",
-        "report_id": "obs-000013",
-        "sampled_tick": 3,
-        "seq": 8,
-        "tick": 3
-      },
-      {
+        "desk_expectation_seq": 7,
         "desk_report": {
           "claim": null,
           "id": "relay-proposal-00003",
@@ -2886,6 +2878,15 @@
         },
         "kind": "desk_received",
         "proposal_id": "proposal-00003",
+        "seq": 8,
+        "tick": 3
+      },
+      {
+        "kind": "buffered",
+        "note": "链路离线，补充样本留在本地暂存；尚未接收",
+        "proposal_id": "proposal-00003",
+        "report_id": "obs-000013",
+        "sampled_tick": 3,
         "seq": 9,
         "tick": 3
       },
@@ -13314,6 +13315,584 @@
         }
       },
       "source_id": "pla-kj700"
+    }
+  ],
+  "receipt_studies": [
+    {
+      "approval_seq": 6,
+      "case_id": "proposal-00003",
+      "delivery": "delivered",
+      "end_tick": 9,
+      "field_audit": {
+        "buffered": {
+          "as_of_tick": 3,
+          "receipt_id": "ack-proposal-00003-buffered",
+          "received_tick": 9,
+          "sampled_tick": 3,
+          "sent_tick": 6,
+          "status": "sampled_buffered"
+        },
+        "not_sampled": {
+          "as_of_tick": 3,
+          "receipt_id": "ack-proposal-00003-not-sampled",
+          "received_tick": 9,
+          "sampled_tick": null,
+          "sent_tick": 6,
+          "status": "not_sampled"
+        }
+      },
+      "frames": [
+        {
+          "buffered": {
+            "expected_tick": null,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": null
+          },
+          "not_sampled": {
+            "expected_tick": null,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": null
+          },
+          "tick": 0
+        },
+        {
+          "buffered": {
+            "expected_tick": null,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": null,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 1
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 2
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 3
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 4
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 5
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 6
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 7
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 8
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": {
+              "as_of_tick": 3,
+              "known_tick": 9,
+              "receipt_id": "ack-proposal-00003-buffered",
+              "status": "sampled_buffered"
+            },
+            "link_enabled": true,
+            "receipts": [
+              {
+                "as_of_tick": 3,
+                "case_id": "proposal-00003",
+                "id": "ack-proposal-00003-buffered",
+                "received_tick": 9,
+                "sampled_tick": 3,
+                "sent_tick": 6,
+                "source_id": "pla-kj700",
+                "status": "sampled_buffered"
+              }
+            ],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": {
+              "as_of_tick": 3,
+              "known_tick": 9,
+              "receipt_id": "ack-proposal-00003-not-sampled",
+              "status": "not_sampled"
+            },
+            "link_enabled": true,
+            "receipts": [
+              {
+                "as_of_tick": 3,
+                "case_id": "proposal-00003",
+                "id": "ack-proposal-00003-not-sampled",
+                "received_tick": 9,
+                "sampled_tick": null,
+                "sent_tick": 6,
+                "source_id": "pla-kj700",
+                "status": "not_sampled"
+              }
+            ],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 9
+        }
+      ],
+      "kind": "c5isr-receipt-study",
+      "schema_version": 1,
+      "source_id": "pla-kj700",
+      "start_tick": 0
+    },
+    {
+      "approval_seq": 6,
+      "case_id": "proposal-00003",
+      "delivery": "lost",
+      "end_tick": 9,
+      "field_audit": {
+        "buffered": {
+          "as_of_tick": 3,
+          "receipt_id": "ack-proposal-00003-buffered",
+          "received_tick": null,
+          "sampled_tick": 3,
+          "sent_tick": 6,
+          "status": "sampled_buffered"
+        },
+        "not_sampled": {
+          "as_of_tick": 3,
+          "receipt_id": "ack-proposal-00003-not-sampled",
+          "received_tick": null,
+          "sampled_tick": null,
+          "sent_tick": 6,
+          "status": "not_sampled"
+        }
+      },
+      "frames": [
+        {
+          "buffered": {
+            "expected_tick": null,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": null
+          },
+          "not_sampled": {
+            "expected_tick": null,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": null
+          },
+          "tick": 0
+        },
+        {
+          "buffered": {
+            "expected_tick": null,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": null,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 1
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 2
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 3
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 4
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": false,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 5
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 6
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 7
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 8
+        },
+        {
+          "buffered": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "not_sampled": {
+            "expected_tick": 3,
+            "knowledge": null,
+            "link_enabled": true,
+            "receipts": [],
+            "request": {
+              "approval_seq": 6,
+              "approved_tick": 1,
+              "id": "proposal-00003"
+            }
+          },
+          "tick": 9
+        }
+      ],
+      "kind": "c5isr-receipt-study",
+      "schema_version": 1,
+      "source_id": "pla-kj700",
+      "start_tick": 0
     }
   ]
 }

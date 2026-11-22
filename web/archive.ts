@@ -1,5 +1,7 @@
 import type { DecisionEvent, Frame, Link, LinkChange, LinkState, Observation, Proposal, ReportVersion, Unit } from '../contracts/state';
 import type { StrategyStudy } from '../contracts/strategy';
+import type { ReceiptStudy } from '../contracts/receipt';
+import { parseReceiptAttachments } from './receiptArchive.ts';
 import { isDeskEventPayload, validateDeskHistory } from './deskArchive.ts';
 import { parseStudyAttachments } from './strategyArchive.ts';
 
@@ -156,7 +158,7 @@ export function parseArchive(text: string) {
   return parseArchiveData(file);
 }
 
-export function parseArchiveData(file: unknown): { history: Frame[]; decision_log: DecisionEvent[]; report_versions?: ReportVersion[]; desk_review_version?: 1; strategy_studies?: StrategyStudy[] } {
+export function parseArchiveData(file: unknown): { history: Frame[]; decision_log: DecisionEvent[]; report_versions?: ReportVersion[]; desk_review_version?: 1; strategy_studies?: StrategyStudy[]; receipt_studies?: ReceiptStudy[] } {
   if (!record(file) || file.kind !== 'c5isr-synthetic-experiment' || file.schema_version !== 1 || !record(file.snapshot)) {
     throw new Error('无法识别实验归档类型或版本。');
   }
@@ -202,6 +204,7 @@ export function parseArchiveData(file: unknown): { history: Frame[]; decision_lo
   }
   validateLinkHistory(history, decisions);
   const studies = file.strategy_studies === undefined ? undefined : parseStudyAttachments(file.strategy_studies, decisions, history);
-  return { history, decision_log: decisions, ...(versions && { report_versions: versions }), ...(studies && { strategy_studies: studies }),
+  const receipts = file.receipt_studies === undefined ? undefined : parseReceiptAttachments(file.receipt_studies, decisions, history);
+  return { history, decision_log: decisions, ...(versions && { report_versions: versions }), ...(studies && { strategy_studies: studies }), ...(receipts && { receipt_studies: receipts }),
     ...(marker === 1 && { desk_review_version: marker }) };
 }

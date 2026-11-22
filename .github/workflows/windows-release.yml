@@ -110,6 +110,32 @@ jobs:
             $health = Invoke-RestMethod "$base/api/health" -TimeoutSec 5
             $archive = Invoke-RestMethod "$base/examples/two-node-replay.json" -TimeoutSec 5
             if ($health.status -ne 'ok' -or $health.version -ne $env:VERSION -or $archive.snapshot.history.Count -ne 13) { throw 'Unexpected health or replay data' }
+            $receiptConditions = @($archive.receipt_studies.delivery | Sort-Object)
+            if (($receiptConditions -join ',') -ne 'delivered,lost') { throw 'Expected both centre receipt conditions in the portable example' }
+            foreach ($study in $archive.receipt_studies) {
+              if ($study.case_id -ne 'proposal-00003' -or ($study.frames.tick -join ',') -ne ((0..9) -join ',')) { throw 'Missing receipt replay through T+9 for the example request' }
+              foreach ($side in 'buffered', 'not_sampled') {
+                $before = $study.frames[8].$side
+                if ($null -ne $before.knowledge -or $null -eq $before.receipts -or $before.receipts.Count -ne 0 -or
+                    !$before.link_enabled -or $before.expected_tick -ne 3 -or $before.request.id -ne $study.case_id -or
+                    $before.request.approved_tick -ne 1 -or $before.request.approval_seq -ne $study.approval_seq) {
+                  throw "T+8 centre $side must have only its local request, schedule and restored link"
+                }
+                $after = $study.frames[9].$side
+                if ($study.delivery -eq 'lost') {
+                  if ($null -ne $after.knowledge -or $null -eq $after.receipts -or $after.receipts.Count -ne 0) { throw "T+9 centre $side learned a status without a receipt" }
+                  continue
+                }
+                $id = if ($side -eq 'buffered') { 'ack-proposal-00003-buffered' } else { 'ack-proposal-00003-not-sampled' }
+                $status = if ($side -eq 'buffered') { 'sampled_buffered' } else { 'not_sampled' }
+                if ($after.receipts.Count -ne 1) { throw "Expected a single T+9 receipt for $side" }
+                $receipt = $after.receipts[0]
+                if ($receipt.id -cne $id -or $receipt.status -ne $status -or $receipt.case_id -ne $study.case_id -or
+                    $receipt.source_id -ne 'pla-kj700' -or $receipt.as_of_tick -ne 3 -or $receipt.sent_tick -ne 6 -or $receipt.received_tick -ne 9 -or
+                    $after.knowledge.known_tick -ne 9 -or $after.knowledge.as_of_tick -ne 3 -or
+                    $after.knowledge.status -ne $status -or $after.knowledge.receipt_id -cne $receipt.id) { throw "Incorrect T+9 receipt or citation for $side" }
+              }
+            }
             $snapshot = $archive.snapshot
             $t9 = $snapshot.history | Where-Object tick -eq 9
             $t12 = $snapshot.history | Where-Object tick -eq 12
@@ -207,11 +233,9 @@ jobs:
           cat > "$RUNNER_TEMP/notes.md" <<EOF
           下载 \`$zip\`，全部解压后双击 \`C5ISR-Observatory.exe\`。浏览器会打开本机 **T+8 · 双节点对照** 回放。回放可离线运行，无需安装 Node.js、Rust 或登录账号。
 
-          1. 点一次 **下一历史帧** 到 T+9，切到 **审核席**。现场补报 \`obs-000013\` 已经送达，仍标为“待阅”。
-          2. 再点三次到 T+12。转述与补报的说法发生冲突。展开 **人工判断** 可以看到审核席读过两份报告，实际引用了现场补报。
-          3. 在 **核验回报条件** 选择 **常规送达**，再从 **核验材料** 选择 **完整独立记录**、**同源日志副本** 或 **只覆盖前三次采样**，点 **从此次冲突比较策略**。
-          4. 三种回信在 T+15 均显示已收件、待阅。推进到 T+18，保持在该步切换材料，对照原稿编号、四次采样的覆盖情况和判断实际引用的报告。
-          5. 点 **到结算步 → 揭示现场底稿并结算** 查看误判和未决原因。也可返回审核席选择 **延迟送达** 或 **未送达**，比较等待步数和核验请求次数。
+          1. 在 T+8 点 **中心知情对照**。两列都显示“现场状态未知”，已收回执均为 0 份。
+          2. 保持 **回执送达**，点击时间轴右箭头前进到 T+9。中心 A 引用 \`ack-proposal-00003-buffered\`，确认截至 T+3 已采样并缓存。中心 B 引用 \`ack-proposal-00003-not-sampled\`，确认截至同一步尚未采样。
+          3. 停在 T+9，把条件切到 **回执未达**。两列都恢复为未知。展开 **现场底稿** 可对照现场记录与中心当时收到的消息。
 
           **ZIP SHA-256** \`$digest\`
           EOF

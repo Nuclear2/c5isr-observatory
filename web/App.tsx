@@ -10,6 +10,7 @@ import DecisionPanel from './DecisionPanel';
 import LiveReviewDesk from './LiveReviewDeskPanel';
 import ReportComparison from './ReportComparisonPanel';
 import { decisionKindNames, eventsAtFrame } from './decisions';
+import { ReceiptEntry } from './ReceiptStudyPanel';
 
 const pct = (value: number) => `${Math.round(value * 100)}%`;
 const tickLabel = (value: number) => `T+${value.toString().padStart(4, '0')}`;
@@ -233,7 +234,11 @@ function App() {
               <button role="tab" aria-selected={rightTab === 'desk'} onClick={() => setRightTab('desk')} className={rightTab === 'desk' ? 'active' : ''}>审核席</button>
               <button role="tab" aria-selected={rightTab === 'inspector'} onClick={() => setRightTab('inspector')} className={rightTab === 'inspector' ? 'active' : ''}>{historyFrame ? '历史节点' : '节点详情'}</button>
             </div>
-            <div className="decision-content">{!frame ? <div className="empty-state">等待仿真状态…</div> : rightTab === 'desk' ? (
+            <div className="decision-content">
+              {frame && state && (rightTab === 'desk' || rightTab === 'compare') && <ReceiptEntry key={state.run_id}
+                access={{ mode: 'live', runId: state.run_id, online: connection === 'connected' }}
+                frame={frame} log={state.decision_log} cursor={rightTab === 'desk' && historyFrame ? decisionCursor : null} />}
+              {!frame ? <div className="empty-state">等待仿真状态…</div> : rightTab === 'desk' ? (
               <LiveReviewDesk key={state?.run_id} version={state?.desk_review_version} log={state?.decision_log} frame={frame}
                 strategy={state ? { mode: 'live', runId: state.run_id, online: connection === 'connected' } : undefined}
                 historical={Boolean(historyFrame)} cursor={decisionCursor} onCursorChange={setDecisionCursor} disabled={disabled}

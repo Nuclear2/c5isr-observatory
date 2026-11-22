@@ -11,6 +11,8 @@ const reportIds = (v: unknown): v is string[] => Array.isArray(v) && v.length > 
 export function isDeskEventPayload(event: Fields): boolean {
   const r = event.desk_report;
   const j = event.desk_judgment;
+  if (event.desk_expectation_seq != null && !(event.kind === 'desk_received' && object(r) && r.kind === 'relay'
+    && tick(event.desk_expectation_seq) && event.desk_expectation_seq > 0 && tick(event.seq) && event.desk_expectation_seq < event.seq)) return false;
   if (typeof event.kind === 'string' && event.kind.startsWith('desk_')
     && ['actor', 'proposal', 'evidence', 'report_id', 'sampled_tick', 'note'].some(key => event[key] != null)) return false;
   if (event.kind === 'desk_received' || event.kind === 'desk_read') {
@@ -35,7 +37,7 @@ function requireFact(condition: unknown, message: string): asserts condition {
 
 interface DeskCase {
   source: string;
-  buffered: DecisionEvent;
+  buffered?: DecisionEvent;
   delivered?: DecisionEvent;
   relay?: DeskReport;
   supplement?: DeskReport;
@@ -50,6 +52,8 @@ export function validateDeskHistory(log: DecisionEvent[], versions: ReportVersio
   // A later delivery at the very same tick is still future evidence for an earlier event.
   const receiptSequences = new Map(log.filter(e => e.kind === 'received' && e.report_id).map(e => [e.report_id!, e.seq]));
   const subjects = new Map<string, string>();
+  const approved = new Set<string>();
+  const executions = new Map<string, DecisionEvent>();
   const cases = new Map<string, DeskCase>();
   const receivedIds = new Set<string>();
   const readOrigins = new Map<string, DeskReport>();
@@ -64,43 +68,59 @@ export function validateDeskHistory(log: DecisionEvent[], versions: ReportVersio
         && event.desk_judgment?.actor === 'rule', '阅读后缺少当时的规则判断。');
     }
     if (event.kind === 'created' && event.proposal?.action === 'request_observation') subjects.set(id, event.proposal.subject_id);
-    const current = cases.get(id);
-    if (event.kind === 'buffered' && !current) {
+    if (event.kind === 'approved' && subjects.has(id)) approved.add(id);
+    if (event.kind === 'executing' && approved.has(id)) executions.set(id, event);
+    let current = cases.get(id);
+    if (event.kind === 'desk_received' && event.desk_expectation_seq != null) {
+      const execution = executions.get(id);
+      const source = subjects.get(id);
+      requireFact(source && sources.has(source) && execution?.seq === event.desk_expectation_seq
+        && execution.tick + 1 === event.desk_report!.sampled_tick, '转述缺少对应的中心采样预期或已批准请求。');
+      if (!current) {
+        current = { source, read: [], humanJudged: false };
+        cases.set(id, current);
+      }
+    }
+    if (event.kind === 'buffered' && !current?.buffered) {
       const source = subjects.get(id);
       requireFact(source && sources.has(source) && identifier(event.report_id) && tick(event.sampled_tick),
         '离线缓存缺少对应的本方补报任务。');
       const issue = editions.get(event.report_id);
       requireFact(issue ? issue.proposal_id === id && issue.source_id === source && issue.sampled_tick === event.sampled_tick
         : event.sampled_tick < firstTick, '离线缓存与本事项的采样版本不一致。');
-      cases.set(id, { source, buffered: event, read: [], humanJudged: false });
+      if (current) current.buffered = event;
+      else cases.set(id, { source, buffered: event, read: [], humanJudged: false });
       continue;
     }
     if (event.kind === 'received' && current) {
-      requireFact(!current.delivered && event.report_id === current.buffered.report_id && event.sampled_tick === current.buffered.sampled_tick
+      requireFact(!current.delivered && (!current.buffered || event.report_id === current.buffered.report_id && event.sampled_tick === current.buffered.sampled_tick)
         && event.evidence?.some(o => o.id === event.report_id && o.source_id === current.source && o.observed_tick === event.sampled_tick
           && o.received_tick === event.tick), '补报送达事件与缓存的采样记录不一致。');
       current.delivered = event;
     }
     if (!event.kind.startsWith('desk_')) continue;
-    requireFact(current, '缺少本次复核对应的离线缓存记录。');
+    requireFact(current, '缺少本次复核对应的采样预期或离线缓存记录。');
     if (event.kind === 'desk_received') {
       const r = event.desk_report!;
-      requireFact(event.tick === r.received_tick && r.sampled_tick === current.buffered.sampled_tick && r.source_id === current.source
+      requireFact(event.tick === r.received_tick && r.source_id === current.source
         && !receivedIds.has(r.id), '收件编号、来源、采样或送达时间不一致。');
       if (r.kind === 'relay') {
         const origin = editions.get(r.root_id);
-        const issue = editions.get(current.buffered.report_id!);
-        requireFact(!current.relay && !editions.has(r.id) && r.id !== r.root_id && r.root_id !== current.buffered.report_id
-          && r.id !== current.buffered.report_id && r.received_tick === current.buffered.tick, '转述与原件、缓存或此前收件不一致。');
+        const issue = current.buffered?.report_id && editions.get(current.buffered.report_id);
+        const prompted = event.desk_expectation_seq != null;
+        requireFact(!current.relay && !editions.has(r.id) && r.id !== r.root_id && r.root_id !== current.buffered?.report_id
+          && r.id !== current.buffered?.report_id && (prompted || current.buffered && r.received_tick === current.buffered.tick
+            && r.sampled_tick === current.buffered.sampled_tick), '转述与原件、缓存或此前收件不一致。');
         // A rolling history may drop an old edition. Within a complete history its root must still exist.
-        requireFact(origin ? (!issue || origin.version < issue.version) && origin.source_id === r.source_id && origin.sampled_tick === r.root_sampled_tick
+        requireFact((!prompted || r.root_sampled_tick < r.sampled_tick) && (origin ? (!issue || origin.version < issue.version) && origin.source_id === r.source_id && origin.sampled_tick === r.root_sampled_tick
           && origin.center_received_tick !== null && origin.center_received_tick <= event.tick
           && (receiptSequences.get(r.root_id) ?? 0) < event.seq
-          : r.root_sampled_tick < firstTick, '转述引用了当时中心尚未持有的原件。');
+          : r.root_sampled_tick < firstTick), '转述引用了当时中心尚未持有的原件。');
         current.relay = r;
       } else {
         requireFact(current.relay && !current.supplement && current.delivered?.tick === event.tick
-          && r.id === r.root_id && r.id === current.buffered.report_id && r.root_sampled_tick === r.sampled_tick,
+          && r.id === r.root_id && r.id === current.delivered.report_id && r.sampled_tick === current.delivered.sampled_tick
+          && r.root_sampled_tick === r.sampled_tick,
           '审核席补报缺少已实际送达的原件。');
         const edition = editions.get(r.id);
         requireFact(edition ? edition.source_id === current.source && edition.proposal_id === id && edition.sampled_tick === r.sampled_tick
@@ -147,7 +167,7 @@ export function validateDeskHistory(log: DecisionEvent[], versions: ReportVersio
   requireFact(awaitingRule === null, '末次阅读缺少规则判断。');
   for (const current of cases.values()) {
     requireFact(current.relay && (!current.delivered || current.supplement), '已缓存或已送达的复核报告缺少审核席收件记录。');
-    const issue = editions.get(current.buffered.report_id!);
+    const issue = current.buffered?.report_id && editions.get(current.buffered.report_id);
     requireFact(!issue || issue.center_received_tick === (current.delivered?.tick ?? null), '中心收件台账与补报送达事件不一致。');
   }
 }

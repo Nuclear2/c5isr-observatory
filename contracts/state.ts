@@ -67,6 +67,8 @@ export interface DecisionEvent {
   sampled_tick?: number | null;
   note?: string | null;
   desk_report?: DeskReport | null;
+  /** A locally issued request started this sampling deadline (new relay receipts only). */
+  desk_expectation_seq?: number | null;
   desk_judgment?: DeskJudgment | null;
 }
 // Older exports predate decision recording and have no sequence cutoff.

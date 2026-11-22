@@ -51,15 +51,20 @@ test('reopening a judgment at the last frame preserves its scope and its cited e
   assert.equal(received[1].desk_report.claim, null, 'later readings do not mutate the receipt');
 });
 
-test('transport history stays within the case, and desk judgments stay out of proposal approvals', () => {
+test('unreported field events leave the centre unchanged and only the actual receipt confirms sampling', () => {
   const caseId = received[0].proposal_id;
   const otherCase = { ...received[0], proposal_id: 'another-case', desk_report: { ...relay, id: 'another-relay' } };
   const events = [received[0], readings[0], otherCase, { proposal_id: caseId, kind: 'expired', tick: 40 }];
   const [other, original] = reviewCases(events);
   assert.equal(other.id, 'another-case');
-  assert.equal(other.transport, undefined);
   assert.equal(other.entries[0].readSeq, null);
-  assert.equal(original.transport.kind, 'expired');
+  assert.deepEqual([other, original], reviewCases(events.slice(0, 3)));
+  const hidden = new Set(['buffered', 'sent', 'dropped', 'expired', 'completed']);
+  assert.deepEqual(reviewCases(log.filter(e => !hidden.has(e.kind))), reviewCases(log));
+  const receipt = log.find(e => e.proposal_id === caseId && e.kind === 'received');
+  assert.equal(desksAt(receipt.tick, receipt.seq - 1)[0].centerReceipt, undefined);
+  assert.deepEqual(desksAt(receipt.tick, receipt.seq)[0].centerReceipt,
+    { id: receipt.report_id, sampledTick: receipt.sampled_tick, receivedTick: receipt.tick });
   assert.deepEqual(original.entries.map(e => e.report.id), [relay.id]);
   assert.deepEqual(reviewCases(eventsAtFrame(log, { tick: 12 })), []);
   const proposal = rebuildDecisions(log).find(record => record.proposal.id === caseId);

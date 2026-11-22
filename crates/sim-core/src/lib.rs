@@ -11,6 +11,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 pub mod evidence_lab;
 mod live_desk;
+pub mod receipt_study;
 mod report_versions;
 pub mod strategy_study;
 pub use live_desk::{DeskActor, DeskClaim, DeskFinding, DeskJudgment, DeskReport, DeskReportKind};
@@ -171,6 +172,8 @@ pub struct DecisionEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub desk_report: Option<DeskReport>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub desk_expectation_seq: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub desk_judgment: Option<DeskJudgment>,
 }
 
@@ -188,6 +191,7 @@ impl DecisionEvent {
             sampled_tick: None,
             note: None,
             desk_report: None,
+            desk_expectation_seq: None,
             desk_judgment: None,
         }
     }
@@ -287,6 +291,7 @@ pub struct Engine {
     noisy_until: u64,
     queue: Vec<QueuedMessage>,
     desk_inbox: VecDeque<(String, DeskReport)>,
+    desk_expectations: Vec<live_desk::DeskExpectation>,
     // Immutable payload of each retained own-source edition. The public ledger
     // contains only its version/transport metadata until the desk reads a copy.
     edition_claims: HashMap<String, DeskClaim>,
@@ -361,6 +366,7 @@ impl Engine {
             noisy_until: 0,
             queue: Vec::new(),
             desk_inbox: VecDeque::new(),
+            desk_expectations: Vec::new(),
             edition_claims: HashMap::new(),
             executions: Vec::new(),
             hidden_objects: Vec::new(),
@@ -415,6 +421,7 @@ impl Engine {
         self.deliver_field_copies();
         self.expire_proposals();
         self.ensure_offline_request(false);
+        self.check_desk_expectations();
         self.process_actions();
         self.resume_buffered_reports();
         self.move_symbols();
@@ -513,6 +520,7 @@ impl Engine {
                     Some("link-pla-kj700"),
                 );
                 self.interrupt_disconnected_messages();
+                self.check_desk_expectations();
                 self.ensure_offline_request(true);
             }
             "sensor_noise" => {
@@ -1356,6 +1364,9 @@ impl Engine {
                 None,
                 Some("已批准的信息管理动作开始执行"),
             );
+            if proposal.action == "request_observation" {
+                self.schedule_desk_expectation(&proposal);
+            }
         }
     }
 
@@ -1477,9 +1488,7 @@ impl Engine {
             .collect();
         for subject_id in offline {
             if self.has_active("request_observation", &subject_id)
-                || self.queue.iter().any(|message| {
-                    message.proposal_id.is_some() && message.observation.source_id == subject_id
-                })
+                || self.expects_desk_receipt(&subject_id)
                 || self
                     .state
                     .proposals
@@ -1822,10 +1831,8 @@ impl Engine {
             note: Some(note.into()),
             ..DecisionEvent::new(self.state.tick, proposal_id, kind)
         });
-        match kind {
-            "buffered" => self.receive_desk_relay(proposal_id, &message.observation),
-            "received" => self.receive_desk_supplement(proposal_id, &message.observation),
-            _ => {}
+        if kind == "received" {
+            self.receive_desk_supplement(proposal_id, &message.observation);
         }
     }
 
@@ -1852,6 +1859,11 @@ impl Engine {
         );
         protected.extend(self.executions.iter().map(|(id, _)| id.clone()));
         protected.extend(self.desk_inbox.iter().map(|(id, _)| id.clone()));
+        protected.extend(
+            self.desk_expectations
+                .iter()
+                .map(|plan| plan.case_id.clone()),
+        );
         // A still-held edition can outlive the proposal list and the frame where
         // it was sampled. Preserve its approval and central transport outcome.
         protected.extend(

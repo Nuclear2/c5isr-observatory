@@ -301,6 +301,10 @@ test('live desk reads actual outage reports and freezes the basis of each judgme
   await step();
   let state = await step();
   const relay = desk(state)[0].desk_report;
+  const approval = state.decision_log.find(e => e.proposal_id === task.id && e.kind === 'approved');
+  const receiptPath = '/api/receipt-study';
+  const receiptCommand = { run_id: initial.run_id, case_id: task.id, approval_seq: approval.seq, delivery: 'delivered' };
+  await post(receiptPath, receiptCommand, 400);
   const cached = initial.report_versions.find(row => row.source_id === source);
   assert.deepEqual([relay.kind, relay.root_id, relay.root_sampled_tick, relay.received_tick, relay.claim],
     ['relay', cached.report_id, cached.sampled_tick, 3, null]);
@@ -328,6 +332,8 @@ test('live desk reads actual outage reports and freezes the basis of each judgme
     [9, reportId, 9, null]);
   assert.equal(state.report_versions.find(v => v.report_id === reportId).center_received_tick, arrival.tick);
   assert.equal(desk(state).filter(e => e.kind === 'desk_read').length, 1);
+  const deliveredReceipts = await post(receiptPath, receiptCommand);
+  assert.deepEqual(await get('/api/state'), state, 'deriving the paired worlds leaves the live experiment unchanged');
   for (let i = 0; i < 3; i++) state = await step();
   const secondRead = desk(state).find(e => e.kind === 'desk_read' && e.desk_report.id === reportId);
   assert.deepEqual([secondRead.tick, secondRead.desk_report.sampled_tick, secondRead.desk_report.claim], [12, 3, 'gap']);
@@ -396,10 +402,16 @@ test('live desk reads actual outage reports and freezes the basis of each judgme
     assert.deepEqual(decision.evidence_ids, copy ? [reportId, read.id] : [read.id]);
   }
   assert.equal(studies.at(-1).frames.at(-1).verify.reports.length, 2, 'no reply is invented at the deadline');
+  const lostReceipts = await post(receiptPath, { ...receiptCommand, delivery: 'lost' });
+  assert.deepEqual(await post(receiptPath, receiptCommand), deliveredReceipts);
+  await post(receiptPath, { ...receiptCommand, approval_seq: conflict.seq }, 400);
+  await post(receiptPath, { ...receiptCommand, case_id: 'unknown-case' }, 400);
+  assertReceiptComparison(deliveredReceipts, lostReceipts, approval, source);
   assert.deepEqual(await get('/api/state'), original, 'the fork must not advance or mutate the live experiment');
-  assert.doesNotMatch(JSON.stringify(original), /field_record|recorded_samples|verification-proposal|strategy_studies/);
+  assert.doesNotMatch(JSON.stringify(original), /field_record|recorded_samples|verification-proposal|strategy_studies|field_audit|receipt_studies/);
   const recorded = parseArchive(JSON.stringify(await get('/api/export')));
   assert.deepEqual(recorded.strategy_studies, studies);
+  assert.deepEqual(recorded.receipt_studies, [deliveredReceipts, lostReceipts]);
   assert.equal(recorded.desk_review_version, 1);
   const judgments = desk(recorded).filter(e => e.kind === 'desk_judged');
   assert.deepEqual(judgments.find(e => e.seq === frozen.seq), frozen);
@@ -409,12 +421,47 @@ test('live desk reads actual outage reports and freezes the basis of each judgme
   assert.deepEqual(desk(sample), desk(recorded), 'bundled desk timeline must match the live run');
   assert.deepEqual(sample.history, recorded.history);
   assert.deepEqual(sample.strategy_studies, studies, 'the bundled forks must reproduce the live server results');
+  assert.deepEqual(sample.receipt_studies, recorded.receipt_studies, 'the bundled receipts must reproduce the actual API outputs');
   await post('/api/control', { action: 'reset', value: seed });
   await post(path, finalCommand, 409);
   await post(studyPath, { ...fork, delivery: 'normal' }, 409);
-  assert.deepEqual((await get('/api/export')).strategy_studies, []);
+  await post(receiptPath, receiptCommand, 409);
+  const cleared = await get('/api/export');
+  assert.deepEqual(cleared.strategy_studies, []);
+  assert.deepEqual(cleared.receipt_studies, []);
   assert.deepEqual(desk(await get('/api/state')), []);
 });
+
+function assertReceiptComparison(delivered, lost, approval, source) {
+  assert.deepEqual([delivered.start_tick, delivered.end_tick], [0, 9]);
+  assert.deepEqual(delivered.frames.map(f => f.tick), lost.frames.map(f => f.tick));
+  assert.equal(delivered.frames.length, 10);
+  for (const [index, f] of delivered.frames.entries()) {
+    const unconfirmed = lost.frames[index];
+    assert.deepEqual(unconfirmed.buffered, unconfirmed.not_sampled);
+    assert.deepEqual(unconfirmed.buffered.receipts, []);
+    assert.equal(unconfirmed.buffered.knowledge, null);
+    if (f.tick < 9) {
+      assert.deepEqual(f.buffered, f.not_sampled, 'identical inputs must produce identical center views');
+      assert.deepEqual(f.buffered, unconfirmed.buffered);
+    }
+  }
+  const at = t => delivered.frames.find(f => f.tick === t);
+  assert.equal(at(0).buffered.request, null);
+  assert.equal(at(1).buffered.request.approval_seq, approval.seq);
+  assert.equal(at(3).buffered.expected_tick, 3);
+  assert.equal(at(6).buffered.link_enabled, true);
+  for (const [branch, status, sampled] of [['buffered', 'sampled_buffered', 3], ['not_sampled', 'not_sampled', null]]) {
+    const center = at(9)[branch];
+    assert.equal(center.receipts.length, 1);
+    const [receipt] = center.receipts;
+    assert.deepEqual([receipt.source_id, receipt.case_id, receipt.status, receipt.sampled_tick], [source, approval.proposal_id, status, sampled]);
+    assert.deepEqual([receipt.as_of_tick, receipt.sent_tick, receipt.received_tick], [3, 6, 9]);
+    assert.deepEqual(center.knowledge, { status, as_of_tick: 3, known_tick: 9, receipt_id: receipt.id });
+    assert.equal(delivered.field_audit[branch].receipt_id, receipt.id);
+    assert.equal(lost.field_audit[branch].received_tick, null);
+  }
+}
 
 test('play/pause uses the server clock and single-step refuses to race it', async () => {
   const start = await post('/api/control', { action: 'play' });

@@ -115,6 +115,7 @@ test('desk audit keeps received headers, read bodies and cited subsets with thei
   // Old editions and groups can leave the rolling window while a newer group remains protected.
   const recording = JSON.parse(example);
   delete recording.strategy_studies;
+  delete recording.receipt_studies;
   const s = recording.snapshot;
   s.history = [{ ...s.history.at(-1), tick: 410 }];
   s.report_versions = s.report_versions.filter(r => r.report_id !== root_id || r.source_id !== source_id);
@@ -175,4 +176,26 @@ test('desk imports reject future claims, foreign roots, forged receipts, and pre
     change(s, caseEntries(s.decision_log));
     assert.throws(() => parseArchive(JSON.stringify(recording)), reason, change.toString());
   }
+});
+
+test('a local sampling deadline can open a review even when the field has issued nothing', () => {
+  const recording = JSON.parse(example);
+  delete recording.strategy_studies;
+  delete recording.receipt_studies;
+  const s = recording.snapshot;
+  const { relay } = caseEntries(s.decision_log);
+  s.history = s.history.filter(f => f.tick <= relay.tick);
+  s.decision_log = s.decision_log.filter(e => e.seq <= relay.seq);
+  s.history.at(-1).decision_seq = relay.seq;
+  s.report_versions = s.report_versions.filter(r => r.proposal_id !== relay.proposal_id);
+  assert.equal(parseArchive(JSON.stringify(recording)).decision_log.at(-1).desk_expectation_seq, relay.desk_expectation_seq);
+  const execution = s.decision_log.find(e => e.seq === relay.desk_expectation_seq);
+  assert.equal(execution.kind, 'executing');
+  relay.desk_expectation_seq--;
+  assert.throws(() => parseArchive(JSON.stringify(recording)), /已批准请求/);
+  relay.desk_expectation_seq = execution.seq;
+  s.decision_log = s.decision_log.filter(e => e.kind !== 'approved');
+  assert.throws(() => parseArchive(JSON.stringify(recording)), /已批准请求/);
+  delete relay.desk_expectation_seq;
+  assert.throws(() => parseArchive(JSON.stringify(recording)), /离线缓存记录/);
 });

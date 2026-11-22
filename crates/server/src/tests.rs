@@ -15,6 +15,7 @@ fn fixture() -> Inner {
         journal: vec![],
         model_runs: vec![],
         strategy_studies: vec![],
+        receipt_studies: vec![],
         automation: AutomationStatus::default(),
         active_job: None,
         job_sequence: 0,

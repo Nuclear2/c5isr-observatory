@@ -11,6 +11,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
+use sim_core::receipt_study::{self, ReceiptDelivery, ReceiptStudy};
 use sim_core::strategy_study::{Delivery, Material, StrategyStudy, run_study};
 use sim_core::{Engine, ModelProposal};
 use std::{
@@ -99,6 +100,7 @@ struct Inner {
     journal: Vec<Value>,
     model_runs: Vec<Value>,
     strategy_studies: Vec<StrategyStudy>,
+    receipt_studies: Vec<ReceiptStudy>,
     automation: AutomationStatus,
     active_job: Option<ActiveJob>,
     job_sequence: u64,
@@ -219,6 +221,15 @@ struct StrategyCommand {
     delivery: Delivery,
     #[serde(default)]
     material: Material,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ReceiptCommand {
+    run_id: String,
+    case_id: String,
+    approval_seq: u64,
+    delivery: ReceiptDelivery,
 }
 
 #[derive(Deserialize)]
@@ -373,6 +384,7 @@ async fn control(
             inner.journal.clear();
             inner.model_runs.clear();
             inner.strategy_studies.clear();
+            inner.receipt_studies.clear();
             inner.model.last_run_tick = None;
             inner.model.last_error = None;
             inner.automation = AutomationStatus {
@@ -480,6 +492,37 @@ async fn strategy_study(
     }
     .map_err(bad)?;
     inner.strategy_studies.push(study.clone());
+    Ok(Json(study))
+}
+
+async fn receipt_study(
+    State(app): State<Arc<AppState>>,
+    Json(command): Json<ReceiptCommand>,
+) -> Result<Json<ReceiptStudy>, ApiError> {
+    let mut inner = app.inner.lock().await;
+    app.ensure_running()?;
+    inner.require_run(&command.run_id)?;
+    let snapshot = inner.engine.current();
+    let oldest = snapshot.history.first().map_or(snapshot.tick, |f| f.tick);
+    inner.receipt_studies.retain(|s| s.start_tick >= oldest);
+    let mut recorded = inner
+        .receipt_studies
+        .iter()
+        .filter(|s| s.case_id == command.case_id && s.approval_seq == command.approval_seq);
+    if let Some(saved) = recorded.clone().find(|s| s.delivery == command.delivery) {
+        return Ok(Json(saved.clone()));
+    }
+    let study = match recorded.next() {
+        Some(sibling) => sibling.with_delivery(command.delivery),
+        None => receipt_study::run_study(
+            inner.engine.current(),
+            &command.case_id,
+            command.approval_seq,
+            command.delivery,
+        )
+        .map_err(bad)?,
+    };
+    inner.receipt_studies.push(study.clone());
     Ok(Json(study))
 }
 
@@ -1220,11 +1263,17 @@ async fn export(State(app): State<Arc<AppState>>) -> impl IntoResponse {
         .iter()
         .filter(|s| s.fork_tick >= oldest)
         .collect();
+    let receipt_studies: Vec<_> = inner
+        .receipt_studies
+        .iter()
+        .filter(|s| s.start_tick >= oldest)
+        .collect();
     let archive = json!({
         "schema_version":1, "kind":"c5isr-synthetic-experiment", "scenario_version":"archipelago-2-own-view",
         "notice":"所有参数和空间均为合成数据，装备名称仅为标签。历史快照用于回看，不代表现实作战效能。",
         "snapshot":inner.view(), "journal":inner.journal, "model_runs":inner.model_runs,
         "strategy_studies":studies,
+        "receipt_studies":receipt_studies,
     });
     (
         [(
@@ -1326,6 +1375,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         journal: Vec::new(),
         model_runs: Vec::new(),
         strategy_studies: Vec::new(),
+        receipt_studies: Vec::new(),
         automation: AutomationStatus::default(),
         active_job: None,
         job_sequence: 0,
@@ -1351,6 +1401,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/proposals/{id}/review", post(review))
         .route("/review-desk/judgments", post(record_desk_judgment))
         .route("/strategy-study", post(strategy_study))
+        .route("/receipt-study", post(receipt_study))
         .route("/model/analyze", post(analyze))
         .route("/automation", post(automation))
         .route("/export", get(export))

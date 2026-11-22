@@ -82,6 +82,24 @@ fn ai_validates_auto_approves_new_model_tasks_and_executes_them_only() {
     );
     assert_eq!(inner.automation.auto_approved, 1);
     assert_eq!(inner.automation.cycles_completed, 1);
+    let decision_view = inner.view();
+    let approved: Vec<&Value> = decision_view["decision_log"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|entry| entry["kind"] == "approved")
+        .collect();
+    assert_eq!(approved.len(), 1);
+    assert_eq!(approved[0]["actor"], "ai");
+    assert_eq!(
+        approved[0]["proposal_id"],
+        state
+            .proposals
+            .iter()
+            .find(|p| p.source == "codex")
+            .unwrap()
+            .id
+    );
     assert!(
         inner
             .journal
@@ -167,6 +185,11 @@ fn stop_discards_late_response_and_never_restarts() {
     let response = output(&inner);
     stop_automation(&mut inner, None);
     assert!(inner.model.busy); // A stopping process still occupies the one-call slot.
+    let conflict = prepare_job(&mut inner, std::path::Path::new("."), false, now)
+        .err()
+        .expect("a stopping job must reject overlapping manual inference");
+    assert_eq!(conflict.0, StatusCode::CONFLICT);
+    assert_eq!(inner.job_sequence, 1);
     finish_job(&mut inner, &job, Ok(response));
     assert!(!inner.model.busy);
     assert_eq!(inner.automation.mode, "manual");
@@ -188,6 +211,13 @@ fn stop_discards_late_response_and_never_restarts() {
         .is_none()
     );
     assert_eq!(inner.engine.snapshot().tick, 0);
+    assert!(
+        inner.view()["decision_log"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|entry| entry["kind"] != "approved")
+    );
 }
 
 #[test]
@@ -283,6 +313,136 @@ fn manual_inference_still_requires_human_review() {
         "pending"
     );
     assert_eq!(inner.automation.auto_approved, 0);
+    let before_review = inner.view();
+    assert!(
+        before_review["decision_log"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|entry| entry["kind"] != "approved")
+    );
+    let id = inner
+        .engine
+        .snapshot()
+        .proposals
+        .into_iter()
+        .find(|proposal| proposal.source == "codex")
+        .unwrap()
+        .id;
+    inner.engine.review(&id, true).unwrap();
+    let after_review = inner.view();
+    let approved = after_review["decision_log"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|entry| entry["kind"] == "approved" && entry["proposal_id"] == id)
+        .unwrap();
+    assert_eq!(approved["actor"], "human");
+}
+
+#[test]
+fn model_input_allowlist_excludes_decision_archive_contacts_and_display_text() {
+    let mut inner = fixture();
+    inner.engine.inject("link_loss").unwrap();
+    for _ in 0..40 {
+        inner.engine.step();
+    }
+    let snapshot = inner.engine.snapshot();
+    let own_ids: HashSet<&str> = snapshot
+        .units
+        .iter()
+        .filter(|unit| unit.side == "blue")
+        .map(|unit| unit.id.as_str())
+        .collect();
+    assert!(snapshot.units.iter().any(|unit| unit.side == "red"));
+    assert!(snapshot.history.len() > 1);
+    assert!(!snapshot.events.is_empty());
+    assert!(!inner.view()["decision_log"].as_array().unwrap().is_empty());
+
+    let job = prepare_job(&mut inner, std::path::Path::new("."), false, Instant::now()).unwrap();
+    let input = &job.input;
+    let keys =
+        |value: &Value| -> HashSet<String> { value.as_object().unwrap().keys().cloned().collect() };
+    let expected_keys = |names: &[&str]| -> HashSet<String> {
+        names.iter().map(|name| (*name).to_string()).collect()
+    };
+    assert_eq!(
+        keys(input),
+        expected_keys(&[
+            "schema_version",
+            "tick",
+            "units",
+            "links",
+            "observations",
+            "proposals",
+            "metrics"
+        ])
+    );
+    for unit in input["units"].as_array().unwrap() {
+        assert_eq!(
+            keys(unit),
+            expected_keys(&["id", "side", "domain", "connection"])
+        );
+        assert_eq!(unit["side"], "blue");
+        assert!(own_ids.contains(unit["id"].as_str().unwrap()));
+    }
+    for observation in input["observations"].as_array().unwrap() {
+        assert_eq!(
+            keys(observation),
+            expected_keys(&[
+                "id",
+                "unit_id",
+                "source_id",
+                "observed_tick",
+                "received_tick",
+                "confidence",
+            ])
+        );
+        assert!(own_ids.contains(observation["unit_id"].as_str().unwrap()));
+        assert!(own_ids.contains(observation["source_id"].as_str().unwrap()));
+    }
+    for link in input["links"].as_array().unwrap() {
+        assert_eq!(
+            keys(link),
+            expected_keys(&["id", "from", "to", "quality", "latency_ticks", "enabled"])
+        );
+        assert!(own_ids.contains(link["from"].as_str().unwrap()));
+        assert!(own_ids.contains(link["to"].as_str().unwrap()));
+    }
+    for proposal in input["proposals"].as_array().unwrap() {
+        assert_eq!(
+            keys(proposal),
+            expected_keys(&["action", "subject_id", "status"])
+        );
+    }
+    assert_eq!(
+        keys(&input["metrics"]),
+        expected_keys(&[
+            "delivered",
+            "dropped",
+            "pending_messages",
+            "avg_latency_ticks",
+            "freshness",
+            "completed_tasks",
+        ])
+    );
+    let serialized = input.to_string();
+    for unit in snapshot.units.iter().filter(|unit| unit.side == "red") {
+        assert!(!serialized.contains(&unit.id));
+        assert!(!serialized.contains(&unit.name));
+    }
+    // The existing command-sourced local status evidence remains usable by the
+    // bridge; free-form explanatory notes and report lifecycle data do not.
+    let mut local_snapshot = snapshot;
+    local_snapshot.observations[0].source_id = "command".into();
+    local_snapshot.observations[0].note = "DO_NOT_SEND_LOCAL_EVIDENCE_NOTE".into();
+    local_snapshot.report_versions[0].report_id = "DO_NOT_SEND_REPORT_LEDGER".into();
+    let local_input = bridge_input(&local_snapshot);
+    assert_eq!(local_input["observations"][0]["source_id"], "command");
+    assert!(local_input.get("report_versions").is_none());
+    let serialized = local_input.to_string();
+    assert!(!serialized.contains("DO_NOT_SEND_REPORT_LEDGER"));
+    assert!(!serialized.contains("DO_NOT_SEND_LOCAL_EVIDENCE_NOTE"));
 }
 
 #[test]

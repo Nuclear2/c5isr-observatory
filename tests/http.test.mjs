@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { parseArchive } from '../web/archive.ts';
+import { reportSeriesAtFrame } from '../web/reportComparison.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 let child, base;
@@ -52,6 +54,9 @@ test('serves compiled frontend and a coherent initial contract', async () => {
   assert.equal(state.automation.interval_seconds, 60);
   assert.ok(state.observations.length > 0);
   assert.ok(state.proposals.some(p => p.status === 'pending'));
+  assert.ok(Array.isArray(state.decision_log));
+  assert.ok(state.decision_log.some(event => event.kind === 'created'));
+  assert.ok(state.history.every(frame => Number.isSafeInteger(frame.decision_seq)));
   assert.equal(state.model.available, false);
   assert.ok(state.units.every(u => u.x >= 0 && u.x <= 100));
 });
@@ -104,6 +109,158 @@ test('fault injection changes state and recover clears the outage', async () => 
   await post('/api/model/analyze', {}, 503);
 });
 
+test('approved refresh waits for link recovery, arrives without backdating, and replays its original evidence', async () => {
+  await post('/api/control', { action: 'reset', value: 20261022 });
+  const fault = await post('/api/inject', { kind: 'link_loss' });
+  const offline = fault.links.find(link => !link.enabled);
+  assert.ok(offline);
+  const proposal = fault.proposals.find(candidate =>
+    candidate.action === 'request_observation' && candidate.subject_id === offline.from && candidate.status === 'pending');
+  assert.ok(proposal, 'a disconnected source must offer a reviewable refresh request');
+  const created = fault.decision_log.find(event => event.proposal_id === proposal.id && event.kind === 'created');
+  assert.ok(created?.proposal);
+  assert.equal(created.proposal.status, 'pending');
+  assert.deepEqual(created.evidence.map(observation => observation.id).sort(), [...proposal.evidence_ids].sort());
+  assert.ok(created.evidence.length > 0);
+  assert.ok(created.evidence.every(observation => observation.received_tick <= created.tick));
+  const creationFrame = structuredClone(fault.history.at(-1));
+  const originalEvidence = structuredClone(created.evidence);
+
+  let state = await post('/api/control', { action: 'step' });
+  assert.ok(!state.decision_log.some(event => event.proposal_id === proposal.id && event.kind === 'buffered'));
+  const approved = await post(`/api/proposals/${proposal.id}/review`, { approve: true });
+  const approvalEvent = approved.decision_log.find(event => event.proposal_id === proposal.id && event.kind === 'approved');
+  assert.equal(approvalEvent.actor, 'human');
+  assert.deepEqual(approvalEvent.evidence, originalEvidence);
+  const approvalFrame = structuredClone(approved.history.at(-1));
+  for (let step = 0; step < 5; step++) state = await post('/api/control', { action: 'step' });
+  const buffered = state.decision_log.find(event => event.proposal_id === proposal.id && event.kind === 'buffered');
+  assert.ok(buffered?.report_id, 'approved execution must create an identifiable buffered report');
+  const reportId = buffered.report_id;
+  const sampledTick = buffered.sampled_tick;
+  assert.ok(Number.isSafeInteger(sampledTick) && sampledTick > approvalEvent.tick);
+  assert.equal(state.proposals.find(candidate => candidate.id === proposal.id).status, 'completed');
+  assert.ok(!state.observations.some(observation => observation.id === reportId));
+  assert.ok(!state.decision_log.some(event => event.report_id === reportId && event.kind === 'received'));
+  const bufferedFrame = structuredClone(state.history.at(-1));
+
+  state = await post('/api/inject', { kind: 'recover' });
+  const sent = state.decision_log.find(event => event.report_id === reportId && event.kind === 'sent');
+  assert.ok(sent, 'the unexpired original report must be sent after recovery');
+  assert.equal(sent.sampled_tick, sampledTick);
+  assert.ok(sent.tick > sampledTick);
+  assert.ok(!state.observations.some(observation => observation.id === reportId));
+  const latency = state.links.find(link => link.id === offline.id).latency_ticks;
+  const sendFrame = structuredClone(state.history.at(-1));
+  let received;
+  for (let step = 0; step < latency + 3; step++) {
+    state = await post('/api/control', { action: 'step' });
+    received = state.decision_log.find(event => event.report_id === reportId && event.kind === 'received');
+    if (received) break;
+    assert.ok(!state.observations.some(observation => observation.id === reportId));
+  }
+  assert.ok(received, 'the fixed-seed recovery fixture must deliver its queued report');
+  assert.equal(received.tick, state.tick);
+  assert.equal(received.sampled_tick, sampledTick);
+  assert.ok(received.tick >= sent.tick + latency);
+  assert.ok(received.tick <= sent.tick + latency + 2);
+  const observation = state.observations.find(candidate => candidate.id === reportId);
+  assert.ok(observation);
+  assert.equal(observation.observed_tick, sampledTick);
+  assert.equal(observation.received_tick, received.tick);
+  assert.ok(observation.received_tick > observation.observed_tick);
+  assert.deepEqual(received.evidence.find(candidate => candidate.id === reportId), observation);
+
+  const atFrame = frame => state.decision_log.filter(event => event.seq <= frame.decision_seq);
+  const createdAtFrame = atFrame(creationFrame).filter(event => event.proposal_id === proposal.id);
+  assert.equal(createdAtFrame.at(-1).kind, 'created');
+  assert.deepEqual(createdAtFrame.at(-1).evidence, originalEvidence);
+  assert.equal(atFrame(approvalFrame).filter(event => event.proposal_id === proposal.id).at(-1).kind, 'approved');
+  assert.equal(atFrame(approvalFrame).filter(event => event.proposal_id === proposal.id).at(-1).actor, 'human');
+  assert.ok(atFrame(bufferedFrame).some(event => event.report_id === reportId && event.kind === 'buffered'));
+  assert.ok(!atFrame(bufferedFrame).some(event => event.report_id === reportId && event.kind === 'sent'));
+  for (const frame of state.history.filter(frame => frame.tick < received.tick)) {
+    assert.ok(!atFrame(frame).some(event => event.report_id === reportId && event.kind === 'received'));
+    assert.ok(!atFrame(frame).some(event => event.evidence?.some(candidate => candidate.id === reportId)));
+  }
+  assert.ok(atFrame(sendFrame).some(event => event.report_id === reportId && event.kind === 'sent'));
+  assert.ok(!atFrame(sendFrame).some(event => event.report_id === reportId && event.kind === 'received'));
+  assert.ok(atFrame(state.history.at(-1)).some(event => event.report_id === reportId && event.kind === 'received'));
+  assert.deepEqual(state.decision_log.find(event => event.seq === created.seq).evidence, originalEvidence);
+  assert.ok(state.decision_log.every((event, index, events) => index === 0 || event.seq > events[index - 1].seq));
+
+  const archive = await get('/api/export');
+  assert.deepEqual(archive.snapshot.decision_log, state.decision_log);
+  assert.deepEqual(archive.snapshot.history, state.history);
+  const replay = parseArchive(JSON.stringify(archive));
+  assert.deepEqual(replay.history, state.history);
+  assert.deepEqual(replay.decision_log, state.decision_log);
+  assert.equal(replay.history.at(-1).decision_seq, state.history.at(-1).decision_seq);
+  assert.ok(archive.journal.some(entry => entry.kind === 'review' && entry.payload.id === proposal.id));
+  assert.deepEqual(archive.model_runs, [], 'HTTP acceptance must remain offline');
+});
+
+test('both node views replay the same report revision and their own receipt across an outage', async () => {
+  const initial = await post('/api/control', { action: 'reset', value: 20261022 });
+  const senders = initial.units.filter(unit => unit.side === 'blue' && unit.id !== 'command');
+  assert.deepEqual(initial.report_versions.map(row => row.source_id).sort(), senders.map(unit => unit.id).sort());
+  for (const row of initial.report_versions) {
+    assert.ok(initial.observations.some(o => o.id === row.report_id && o.source_id === row.source_id));
+    assert.deepEqual([row.version, row.sampled_tick, row.field_received_tick, row.center_received_tick, row.proposal_id],
+      [1, 0, 0, 0, null]);
+  }
+
+  let state = await post('/api/inject', { kind: 'link_loss' });
+  const source = state.links.find(link => !link.enabled).from;
+  const proposal = state.proposals.find(p => p.action === 'request_observation' && p.subject_id === source);
+  const original = initial.report_versions.find(row => row.source_id === source);
+  const seenLive = new Map();
+  let reportId;
+  for (let tick = 0; tick <= 9; tick++) {
+    if (tick > 0) state = await post('/api/control', { action: 'step' });
+    if (tick === 1) state = await post(`/api/proposals/${proposal.id}/review`, { approve: true });
+    if (tick === 6) state = await post('/api/inject', { kind: 'recover' });
+    assert.equal(state.tick, tick);
+    const rows = state.report_versions.filter(row => row.source_id === source);
+    const series = reportSeriesAtFrame(state.report_versions, state.history.at(-1)).find(item => item.source_id === source);
+    assert.deepEqual([series.field?.version, series.center?.version], [tick >= 4 ? 2 : 1, tick >= 9 ? 2 : 1]);
+    assert.deepEqual(rows.find(row => row.version === 1), original);
+    if (tick < 3) {
+      assert.equal(rows.length, 1, 'approval alone must not issue another version');
+    } else {
+      assert.equal(rows.length, 2, 'each approved sample produces exactly one revision for both recipients');
+      if (tick === 3) {
+        reportId = state.decision_log.find(e => e.proposal_id === proposal.id && e.kind === 'buffered').report_id;
+        assert.notEqual(reportId, original.report_id);
+      }
+      assert.deepEqual(rows.find(row => row.version === 2), {
+        source_id: source, version: 2, report_id: reportId, sampled_tick: 3, proposal_id: proposal.id,
+        field_received_tick: tick >= 4 ? 4 : null, center_received_tick: tick >= 9 ? 9 : null,
+      });
+      assert.equal(state.observations.some(o => o.id === reportId), tick === 9,
+        'only the center receipt publishes the sample as pooled evidence');
+    }
+    seenLive.set(tick, series);
+  }
+  const events = state.decision_log.filter(event => event.report_id === reportId);
+  assert.deepEqual(events.map(event => [event.kind, event.tick]), [['buffered', 3], ['sent', 6], ['received', 9]]);
+
+  const archive = await get('/api/export');
+  const replay = parseArchive(JSON.stringify(archive));
+  assert.deepEqual(replay.report_versions, state.report_versions);
+  for (const frame of replay.history) {
+    const series = reportSeriesAtFrame(replay.report_versions, frame).find(item => item.source_id === source);
+    assert.deepEqual(series, seenLive.get(frame.tick), `replayed view must match the actual live view at tick ${frame.tick}`);
+  }
+
+  delete archive.snapshot.report_versions;
+  const oldArchive = parseArchive(JSON.stringify(archive));
+  assert.equal(oldArchive.report_versions, undefined);
+  assert.deepEqual(oldArchive.decision_log, replay.decision_log);
+  const reset = await post('/api/control', { action: 'reset', value: 20261022 });
+  assert.deepEqual(reset.report_versions, initial.report_versions);
+});
+
 test('play/pause uses the server clock and single-step refuses to race it', async () => {
   const start = await post('/api/control', { action: 'play' });
   await post('/api/control', { action: 'step' }, 400);
@@ -154,6 +311,9 @@ test('own-side view discovers dynamic contacts only after reports and archives e
   assert.equal(archive.scenario_version, 'archipelago-2-own-view');
   assert.equal(archive.snapshot.perception.total_archived, state.perception.total_archived);
   assert.ok(!('hidden_units' in archive.snapshot));
+  assert.ok(archive.snapshot.report_versions.every(row => row.version === 1
+    && state.units.some(unit => unit.id === row.source_id && unit.side === 'blue' && unit.id !== 'command')),
+  'ordinary samples and reportable contacts never create new own-network report editions');
 });
 
 test('unavailable AI never silently starts a rule-only automatic mode and manual stop pauses', async () => {

@@ -101,8 +101,7 @@ struct Inner {
 
 impl Inner {
     fn view(&self) -> Value {
-        let mut value =
-            serde_json::to_value(self.engine.snapshot()).expect("serializable snapshot");
+        let mut value = serde_json::to_value(self.engine.current()).expect("serializable snapshot");
         value["run_id"] = json!(format!(
             "{}-{}",
             self.server_epoch,
@@ -129,7 +128,7 @@ impl Inner {
     }
 
     fn record(&mut self, kind: &str, payload: Value) {
-        self.journal.push(json!({"sequence":self.journal.len(), "tick":self.engine.snapshot().tick, "kind":kind, "payload":payload}));
+        self.journal.push(json!({"sequence":self.journal.len(), "tick":self.engine.current().tick, "kind":kind, "payload":payload}));
     }
 }
 
@@ -298,7 +297,7 @@ async fn control(
             }
         }
         "step" => {
-            if inner.engine.snapshot().running {
+            if inner.engine.current().running {
                 return Err(bad("请先暂停，再单步推进"));
             }
             inner.engine.step();
@@ -745,6 +744,88 @@ async fn bridge(
     Ok(value)
 }
 
+// The bridge only needs own-network fields for its subsequent pseudonymization.
+// Explicit projection keeps decision evidence, reports, history, and future DTO
+// additions out of provider context without first serializing the full archive.
+fn bridge_input(snapshot: &sim_core::Snapshot) -> Value {
+    let own_ids: HashSet<&str> = snapshot
+        .units
+        .iter()
+        .filter(|unit| unit.side == "blue")
+        .map(|unit| unit.id.as_str())
+        .collect();
+    let units: Vec<Value> = snapshot
+        .units
+        .iter()
+        .filter(|unit| own_ids.contains(unit.id.as_str()))
+        .map(|unit| {
+            json!({
+                "id":unit.id, "side":unit.side, "domain":unit.domain,
+                "connection":unit.connection,
+            })
+        })
+        .collect();
+    let links: Vec<Value> = snapshot
+        .links
+        .iter()
+        .filter(|link| own_ids.contains(link.from.as_str()) && own_ids.contains(link.to.as_str()))
+        .map(|link| {
+            json!({
+                "id":link.id, "from":link.from, "to":link.to, "quality":link.quality,
+                "latency_ticks":link.latency_ticks, "enabled":link.enabled,
+            })
+        })
+        .collect();
+    let observations: Vec<Value> = snapshot
+        .observations
+        .iter()
+        .filter(|observation| {
+            own_ids.contains(observation.unit_id.as_str())
+                && own_ids.contains(observation.source_id.as_str())
+        })
+        .map(|observation| {
+            json!({
+                "id":observation.id, "unit_id":observation.unit_id,
+                "source_id":observation.source_id, "observed_tick":observation.observed_tick,
+                "received_tick":observation.received_tick, "confidence":observation.confidence,
+            })
+        })
+        .collect();
+    let own_links: HashSet<&str> = links
+        .iter()
+        .filter_map(|link| link["id"].as_str())
+        .collect();
+    let proposals: Vec<Value> = snapshot
+        .proposals
+        .iter()
+        .filter(|proposal| {
+            (own_ids.contains(proposal.subject_id.as_str())
+                || own_links.contains(proposal.subject_id.as_str()))
+                && matches!(
+                    proposal.status.as_str(),
+                    "pending" | "approved" | "executing"
+                )
+        })
+        .map(|proposal| {
+            json!({
+                "action":proposal.action, "subject_id":proposal.subject_id,
+                "status":proposal.status,
+            })
+        })
+        .collect();
+    json!({
+        "schema_version":snapshot.schema_version, "tick":snapshot.tick,
+        "units":units, "links":links, "observations":observations, "proposals":proposals,
+        "metrics":{
+            "delivered":snapshot.metrics.delivered, "dropped":snapshot.metrics.dropped,
+            "pending_messages":snapshot.metrics.pending_messages,
+            "avg_latency_ticks":snapshot.metrics.avg_latency_ticks,
+            "freshness":snapshot.metrics.freshness,
+            "completed_tasks":snapshot.metrics.completed_tasks,
+        },
+    })
+}
+
 fn prepare_job(
     inner: &mut Inner,
     root: &std::path::Path,
@@ -763,7 +844,10 @@ fn prepare_job(
             inner.model.detail.clone(),
         ));
     }
-    let snapshot = inner.engine.snapshot();
+    let snapshot = inner.engine.current();
+    let input = bridge_input(snapshot);
+    let run_id = snapshot.run_id.clone();
+    let input_tick = snapshot.tick;
     inner.job_sequence += 1;
     let id = inner.job_sequence;
     let cancel_path = root
@@ -782,16 +866,13 @@ fn prepare_job(
     }
     inner.record(
         "model_requested",
-        json!({"job_id":id,"input_tick":snapshot.tick,"automatic":automatic}),
+        json!({"job_id":id,"input_tick":input_tick,"automatic":automatic}),
     );
-    let mut input = serde_json::to_value(&snapshot).expect("serializable snapshot");
-    input["history"] = json!([]);
-    input["events"] = json!([]);
     Ok(ModelJob {
         id,
         input,
-        run_id: snapshot.run_id,
-        input_tick: snapshot.tick,
+        run_id,
+        input_tick,
         automatic,
         generation: inner.automation.generation,
         cancel_path,
@@ -808,7 +889,7 @@ fn finish_job(inner: &mut Inner, job: &ModelJob, result: Result<Value, String>) 
         .take()
         .is_some_and(|active| active.cancelled);
     inner.model.busy = false;
-    let current_run = inner.engine.snapshot().run_id == job.run_id;
+    let current_run = inner.engine.current().run_id == job.run_id;
     if !current_run
         || cancelled
         || (job.automatic
@@ -827,13 +908,13 @@ fn finish_job(inner: &mut Inner, job: &ModelJob, result: Result<Value, String>) 
         Ok(output) => {
             let previous: HashSet<String> = inner
                 .engine
-                .snapshot()
+                .current()
                 .proposals
-                .into_iter()
-                .map(|p| p.id)
+                .iter()
+                .map(|p| p.id.clone())
                 .collect();
             let parsed = serde_json::from_value::<Vec<ModelProposal>>(output["proposals"].clone());
-            let validation = if inner.engine.snapshot().tick.saturating_sub(job.input_tick) > 60 {
+            let validation = if inner.engine.current().tick.saturating_sub(job.input_tick) > 60 {
                 Err("模型依据已超过 60 个仿真步，请暂停后重新研判".into())
             } else {
                 parsed
@@ -845,10 +926,10 @@ fn finish_job(inner: &mut Inner, job: &ModelJob, result: Result<Value, String>) 
                 inner.model.last_run_tick = Some(job.input_tick);
                 inner.record("model_accepted", json!({"job_id":job.id,"automatic":job.automatic,"output":output}));
                 if job.automatic {
-                    let ids: Vec<String> = inner.engine.snapshot().proposals.into_iter()
-                        .filter(|p| p.source == "codex" && p.status == "pending" && !previous.contains(&p.id)).map(|p| p.id).collect();
+                    let ids: Vec<String> = inner.engine.current().proposals.iter()
+                        .filter(|p| p.source == "codex" && p.status == "pending" && !previous.contains(&p.id)).map(|p| p.id.clone()).collect();
                     for id in ids {
-                        inner.engine.review(&id, true)?;
+                        inner.engine.review_automatic(&id)?;
                         inner.automation.auto_approved += 1;
                         inner.record("auto_review", json!({"id":id,"approve":true,"job_id":job.id,"scope":"own_information_tasks"}));
                     }
@@ -915,7 +996,7 @@ fn advance_scheduler(inner: &mut Inner, root: &std::path::Path, now: Instant) ->
         } // Hold evidence age while inference is in flight.
         let executing = inner
             .engine
-            .snapshot()
+            .current()
             .proposals
             .iter()
             .any(|p| matches!(p.status.as_str(), "approved" | "executing"));
@@ -930,12 +1011,13 @@ fn advance_scheduler(inner: &mut Inner, root: &std::path::Path, now: Instant) ->
         }
         inner.automation.phase = if executing { "executing" } else { "waiting" }.into();
     }
-    let snapshot = inner.engine.snapshot();
-    if snapshot.running {
-        for _ in 0..snapshot.speed {
+    let running = inner.engine.current().running;
+    let speed = inner.engine.current().speed;
+    if running {
+        for _ in 0..speed {
             inner.engine.step();
         }
-        inner.record("advance", json!({"steps":snapshot.speed}));
+        inner.record("advance", json!({"steps":speed}));
     }
     None
 }
@@ -957,7 +1039,7 @@ async fn run_ticker(app: Arc<AppState>) {
         if *shutdown.borrow() {
             break;
         }
-        let publish = inner.engine.snapshot().running || inner.automation.mode == "ai";
+        let publish = inner.engine.current().running || inner.automation.mode == "ai";
         let job = advance_scheduler(&mut inner, &app.root, Instant::now());
         if publish {
             app.publish(&inner);

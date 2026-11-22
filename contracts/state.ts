@@ -19,7 +19,32 @@ export interface Proposal {
 export interface SimEvent { id: string; tick: number; kind: string; message: string; related_id: string | null; }
 export interface Metrics { delivered: number; dropped: number; pending_messages: number; avg_latency_ticks: number; freshness: number; completed_tasks: number; }
 export interface Perception { cycle_ticks: number; next_scan_tick: number; active_contacts: number; total_discovered: number; total_archived: number; }
-export interface Frame { tick: number; units: Unit[]; links: Link[]; metrics: Metrics; perception: Perception; }
+// One immutable edition in a source's supplementary-report series.
+// Receipt ticks are written only after the respective inbox has received the copy.
+export interface ReportVersion {
+  source_id: string;
+  version: number;
+  report_id: string;
+  sampled_tick: number;
+  proposal_id: string | null;
+  field_received_tick: number | null;
+  center_received_tick: number | null;
+}
+export interface DecisionEvent {
+  seq: number;
+  tick: number;
+  proposal_id: string;
+  kind: 'created' | 'approved' | 'rejected' | 'executing' | 'completed' | 'stale'
+    | 'buffered' | 'sent' | 'received' | 'dropped' | 'expired';
+  actor?: 'human' | 'ai' | null;
+  proposal?: Proposal | null;
+  evidence?: Observation[] | null;
+  report_id?: string | null;
+  sampled_tick?: number | null;
+  note?: string | null;
+}
+// Older exports predate decision recording and have no sequence cutoff.
+export interface Frame { tick: number; units: Unit[]; links: Link[]; metrics: Metrics; perception: Perception; decision_seq?: number; }
 export interface ModelStatus { provider: string; available: boolean; busy: boolean; last_error: string | null; last_run_tick: number | null; detail: string; }
 export interface AutomationStatus {
   mode: 'manual' | 'ai'; phase: 'idle' | 'waiting' | 'analyzing' | 'executing' | 'error';
@@ -30,4 +55,7 @@ export interface Snapshot {
   schema_version: number; run_id: string; seed: number; tick: number; running: boolean; speed: number;
   units: Unit[]; links: Link[]; observations: Observation[]; proposals: Proposal[]; events: SimEvent[];
   metrics: Metrics; history: Frame[]; model: ModelStatus; perception: Perception; automation: AutomationStatus;
+  decision_log?: DecisionEvent[];
+  // Absent from exports made before per-recipient receipt recording.
+  report_versions?: ReportVersion[];
 }

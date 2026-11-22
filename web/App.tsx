@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Activity, ArrowRight, Check, ChevronDown, ChevronRight, CircleHelp, Clock3, Download, Eye, History, Layers3, LoaderCircle, Network, Pause, Play, Radio, RefreshCw, Search, ShieldCheck, SkipForward, Sparkles, TriangleAlert, X, Zap, Satellite, Signal, Compass, Cpu, CircleDot } from 'lucide-react';
-import type { Frame, Proposal, Snapshot, Unit } from '../contracts/state';
+import type { Frame, Snapshot, Unit } from '../contracts/state';
 import { getState, request } from './api';
 import SituationMap from './SituationMap';
 import { UnitSymbol, SymbolLegend } from './UnitSymbol';
 import { symbolDefinition } from './symbology';
 import { deriveMotion, headingLabel, speedLabel } from './motion';
+import DecisionPanel from './DecisionPanel';
+import ReportComparison from './ReportComparisonPanel';
+import { decisionKindNames, eventsAtFrame } from './decisions';
 
 const pct = (value: number) => `${Math.round(value * 100)}%`;
 const tickLabel = (value: number) => `T+${value.toString().padStart(4, '0')}`;
-const statusNames: Record<Proposal['status'], string> = { pending: '待人工审批', approved: '已批准', rejected: '已驳回', executing: '执行中', completed: '已反馈', stale: '已过期' };
-const actionNames: Record<Proposal['action'], string> = { review_data: '信息复核', restore_link: '链路恢复', request_observation: '请求观测', hold: '继续观察' };
 const domainNames: Record<Unit['domain'], string> = { air: '空中', surface: '水面', subsurface: '水下', ground: '地面', space: '空间' };
 const affiliationNames: Record<Unit['affiliation'], string> = { PLA: '解放军', US: '美国', TW: '台湾地区', JP: '日本', KR: '韩国' };
 const connectionNames: Record<Unit['connection'], string> = { online: '连接正常', degraded: '连接降级', offline: '离线' };
@@ -21,6 +22,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<string | null>(null);
   const [stopping, setStopping] = useState(false);
+  const [stopResult, setStopResult] = useState<'confirmed' | 'unconfirmed' | null>(null);
   const [awaitingModelCleanup, setAwaitingModelCleanup] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
   const [selectedWasContact, setSelectedWasContact] = useState(false);
@@ -28,8 +30,9 @@ function App() {
   const [search, setSearch] = useState('');
   const [linksVisible, setLinksVisible] = useState(true);
   const [labelsVisible, setLabelsVisible] = useState(true);
-  const [rightTab, setRightTab] = useState<'proposals' | 'inspector'>('proposals');
+  const [rightTab, setRightTab] = useState<'proposals' | 'inspector' | 'compare'>('proposals');
   const [historyFrame, setHistoryFrame] = useState<Frame | null>(null);
+  const [decisionCursor, setDecisionCursor] = useState<number | null>(null);
   const [helpOpen, setHelpOpen] = useState(false);
   const [connectionAttempt, setConnectionAttempt] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -43,22 +46,25 @@ function App() {
       setHistoryFrame(null);
       setSelected(null);
       setSelectedWasContact(false);
+      setStopResult(null);
     }
     if (!next.model.busy) setAwaitingModelCleanup(false);
+    if (next.running || next.automation.mode === 'ai') setStopResult(null);
     runIdRef.current = next.run_id;
     setState(next);
   }, []);
 
   useEffect(() => {
     let active = true;
+    let receivedStreamState = false;
     setConnection('connecting');
-    getState().then(next => { if (active) ingest(next); }).catch(reason => { if (active) { setError(`无法读取仿真状态：${String(reason.message ?? reason)}`); setConnection('disconnected'); } });
+    getState().then(next => { if (active && !receivedStreamState) ingest(next); }).catch(reason => { if (active && !receivedStreamState) { setError(`无法读取仿真状态：${String(reason.message ?? reason)}`); setConnection('disconnected'); } });
     const stream = new EventSource('/api/events');
     streamRef.current = stream;
     stream.onopen = () => { if (active) { setConnection('connected'); setError(null); } };
     stream.addEventListener('state', event => {
       if (!active) return;
-      try { ingest(JSON.parse((event as MessageEvent).data) as Snapshot); setConnection('connected'); } catch { setError('收到无法解析的状态数据，请检查后端日志。'); }
+      try { const next = JSON.parse((event as MessageEvent).data) as Snapshot; ingest(next); receivedStreamState = true; setConnection('connected'); } catch { setError('收到无法解析的状态数据，请检查后端日志。'); }
     });
     stream.onerror = () => { if (active) setConnection('disconnected'); };
     return () => { active = false; stream.close(); streamRef.current = null; };
@@ -97,19 +103,25 @@ function App() {
   };
 
   const control = (action: string, value?: number) => mutate(action, '/api/control', { action, ...(value === undefined ? {} : { value }) });
-  // Stopping is deliberately independent from other in-flight commands and history view.
+  // Stop is an independent HTTP attempt, including when SSE or the last state is stale.
   const stopAutomation = async () => {
-    if (!state || stopping || connection !== 'connected') return;
+    if (stopping) return;
     ++commandRevisionRef.current;
     setStopping(true);
     setPending(null);
-    setAwaitingModelCleanup(Boolean(state.model.busy));
+    setStopResult(null);
+    setAwaitingModelCleanup(false);
     setError(null);
     try {
-      ingest(await request<Snapshot>('/api/automation', { mode: 'manual' }));
+      const next = await request<Snapshot>('/api/automation', { mode: 'manual' }, { timeoutMs: 10_000 });
+      if (next.automation?.mode !== 'manual' || next.running !== false) throw new Error('服务端尚未确认人工模式与暂停状态。');
+      ingest(next);
+      setStopResult('confirmed');
+      setAwaitingModelCleanup(Boolean(next.model.busy));
     } catch (reason) {
       setAwaitingModelCleanup(false);
-      setError(`停止请求失败：${reason instanceof Error ? reason.message : String(reason)}`);
+      setStopResult('unconfirmed');
+      setError(`停止未确认：${reason instanceof Error ? reason.message : String(reason)} 可再次点击停止重试。`);
     } finally { setStopping(false); }
   };
   const selectUnit = (id: string) => {
@@ -128,7 +140,7 @@ function App() {
     } catch (reason) { setError(`导出失败：${reason instanceof Error ? reason.message : String(reason)}`); }
   };
 
-  const frame: Frame | null = historyFrame ?? (state ? { tick: state.tick, units: state.units, links: state.links, metrics: state.metrics, perception: state.perception } : null);
+  const frame: Frame | null = historyFrame ?? (state ? { tick: state.tick, units: state.units, links: state.links, metrics: state.metrics, perception: state.perception, decision_seq: state.decision_log ? state.decision_log.at(-1)?.seq ?? 0 : undefined } : null);
   const units = frame?.units.filter(unit => unit.side === 'blue' || (unit.contact && unit.contact.first_seen_tick <= frame.tick && unit.contact.expires_tick > frame.tick)) ?? [];
   const ownUnits = units.filter(unit => unit.side === 'blue');
   const perception = frame?.perception;
@@ -143,15 +155,15 @@ function App() {
   const onlineCount = ownUnits.filter(unit => unit.connection === 'online').length;
   const readyLinks = frame?.links.filter(link => link.enabled).length ?? 0;
   const isCodex = Boolean(state?.model.provider.toLowerCase().includes('codex') || state?.model.provider.toLowerCase().includes('chatgpt'));
-  const historyIndex = historyFrame ? Math.max(0, state?.history.findIndex(item => item.tick === historyFrame.tick) ?? 0) : Math.max(0, (state?.history.length ?? 1) - 1);
-  const proposals = [...(state?.proposals ?? [])].sort((a, b) => Number(b.status === 'pending') - Number(a.status === 'pending') || b.created_tick - a.created_tick);
-  const stopDisabled = !state || stopping || connection !== 'connected';
+  const historyIndex = historyFrame ? Math.max(0, state?.history.findIndex(item => item.tick === historyFrame.tick && item.decision_seq === historyFrame.decision_seq) ?? 0) : Math.max(0, (state?.history.length ?? 1) - 1);
+  const decisionEvents = frame ? eventsAtFrame(state?.decision_log, frame, historyFrame ? decisionCursor : null) : [];
+  const stopDisabled = stopping;
 
   return <div className="app-shell">
     <header className="topbar">
       <a className="brand" href="/" aria-label="C5ISR Observatory 主页"><span className="brand-mark"><Network size={22} strokeWidth={1.6} /></span><span className="brand-name">C5ISR<span className="brand-divider">/</span><span className="brand-subtitle">OBSERVATORY</span></span><span className="version-tag">LAB 01</span></a>
       <div className="header-context"><span className="context-dot" />澄海 · 信息协同实验<span className="context-divider" />虚构场景</div>
-      <div className="topbar-actions"><span className="synthetic-badge"><ShieldCheck size={13} />合成参数 · 虚构区域</span><button className="icon-button export-button" onClick={exportRun} disabled={!state} title="导出实验记录" aria-label="导出实验记录"><Download size={17} /></button><button className="icon-button" onClick={() => setHelpOpen(true)} title="使用说明" aria-label="打开使用说明"><CircleHelp size={17} /></button></div>
+      <div className="topbar-actions"><span className="synthetic-badge"><ShieldCheck size={13} />合成参数 · 虚构区域</span><button className="icon-button export-button" onClick={exportRun} disabled={!state} title="导出实验记录" aria-label="导出实验记录"><Download size={17} /></button><a className="archive-link" href="?view=archive" target="_blank" rel="noopener noreferrer"><History size={14} />本地回放</a><button className="icon-button" onClick={() => setHelpOpen(true)} title="使用说明" aria-label="打开使用说明"><CircleHelp size={17} /></button></div>
     </header>
 
     <div className="main-layout">
@@ -166,12 +178,13 @@ function App() {
         </section>
 
         <section className="cycle-strip" aria-label="信息决策闭环"><span className="cycle-title"><span className="small-dot" />C5ISR 闭环</span><div className="cycle-stages">{[
-          { name: '感知', note: perception ? `${perception.active_contacts} 个接触` : '周期观测', icon: Eye }, { name: '传输', note: metrics ? `${metrics.pending_messages} 待达` : '通信网络', icon: Radio }, { name: '融合', note: '信息状态', icon: Layers3 }, { name: '建议', note: '规则 / 大模型', icon: Sparkles }, { name: '审批', note: aiMode ? '信息任务授权' : '人工授权', icon: ShieldCheck }, { name: '执行 · 反馈', note: '信息任务', icon: RefreshCw },
-        ].map((stage, index) => <div className="stage-wrapper" key={stage.name}><div className={`cycle-stage stage-${index}`}><stage.icon size={13} /><span>{stage.name}</span><small>{stage.note}</small></div>{index < 5 && <ChevronRight size={12} className="stage-arrow" />}</div>)}</div><span className="cycle-note">{aiMode ? 'AI INFORMATION AUTONOMY' : 'HUMAN IN THE LOOP'}</span></section>
+          { name: '感知', note: perception ? `${perception.active_contacts} 个接触` : '周期观测', icon: Eye }, { name: '传输', note: metrics ? `${metrics.pending_messages} 待达` : '通信网络', icon: Radio }, { name: '融合', note: '信息状态', icon: Layers3 }, { name: '建议', note: '规则 / 大模型', icon: Sparkles }, { name: '审批', note: historyFrame ? '历史审核事件' : aiMode ? '信息任务授权' : '人工授权', icon: ShieldCheck }, { name: '执行 · 反馈', note: '信息任务', icon: RefreshCw },
+        ].map((stage, index) => <div className="stage-wrapper" key={stage.name}><div className={`cycle-stage stage-${index}`}><stage.icon size={13} /><span>{stage.name}</span><small>{stage.note}</small></div>{index < 5 && <ChevronRight size={12} className="stage-arrow" />}</div>)}</div><span className="cycle-note">{historyFrame ? 'HISTORICAL SNAPSHOT' : aiMode ? 'AI INFORMATION AUTONOMY' : 'HUMAN IN THE LOOP'}</span></section>
 
         <AutomationBar state={state} historical={Boolean(historyFrame)} startDisabled={disabled || !state?.model.available} stopDisabled={stopDisabled} stopping={stopping} onStart={() => mutate('automation', '/api/automation', { mode: 'ai' })} onStop={stopAutomation} />
 
         {connection === 'disconnected' && <div className="connection-alert" role="status"><TriangleAlert size={15} /><span>实时连接中断。当前显示最后收到的状态；后端可能仍在运行或消耗额度，正在尝试重连。</span><button onClick={() => setConnectionAttempt(value => value + 1)}>立即重连<RefreshCw size={13} /></button></div>}
+        {stopResult && <div className={`stop-confirmation ${stopResult}`} role="status">{stopResult === 'confirmed' ? <Check size={14} /> : <TriangleAlert size={14} />}<span>{stopResult === 'confirmed' ? awaitingModelCleanup ? '服务端已确认停止后续调用并暂停；在途模型正在清理。' : '服务端已确认停止后续调用并暂停，模型空闲。' : '尚未确认停止；后端可能仍在运行，请重试停止。'}{stopResult === 'confirmed' && connection !== 'connected' && ' 状态流尚未恢复，此处为停止请求返回时的确认。'}</span>{stopResult === 'unconfirmed' && <button onClick={stopAutomation} disabled={stopping}>重试停止</button>}</div>}
         {error && <div className="error-banner" role="alert"><TriangleAlert size={15} /><span>{error}</span><button className="icon-button" onClick={() => setError(null)} title="关闭提示" aria-label="关闭错误提示"><X size={15} /></button></div>}
 
         <main className="operations-grid">
@@ -201,29 +214,33 @@ function App() {
 
           <aside className="decision-panel" aria-label="决策辅助与节点详情">
             <div className="panel-heading"><div><span className="eyebrow">DECISION SUPPORT</span><h2>协同决策台</h2></div><Cpu size={18} className="muted" /></div>
-            <div className="model-box"><div className="model-title"><span className="model-icon"><Sparkles size={15} /></span><div><strong>{isCodex ? 'Codex · ChatGPT 订阅' : '规则基线'}</strong><span>{awaitingModelCleanup ? '停止已请求 · 等待模型进程清理' : modelBusy ? aiMode ? '自治研判中 · 时钟保持' : '正在生成研判…' : state?.model.last_run_tick != null ? `最近研判 ${tickLabel(state.model.last_run_tick)}` : isCodex ? '手动调用 · 尚未完成研判' : '确定性规则提供基础建议'}</span></div><span className={`model-status ${modelBusy ? 'busy' : state?.model.available ? '' : 'unavailable'}`} /> </div><button className="analyze-button" onClick={() => mutate('model', '/api/model/analyze', {})} disabled={disabled || !state?.model.available || modelBusy}>{modelBusy ? <LoaderCircle size={14} className="spin" /> : <Sparkles size={14} />}{awaitingModelCleanup ? '模型进程清理中' : modelBusy ? '研判进行中' : aiMode ? 'AI 信息自治运行中' : '生成模型研判'}<span>{aiMode ? '自动周期' : '手动触发'}</span></button>{state?.model.last_error && <div className="model-error"><TriangleAlert size={12} /><span>{state.model.last_error}</span></div>}<p className="model-note">{state?.model.detail || '正在读取模型接入状态。'} {aiMode ? '仅自动批准本轮校验通过的四类信息任务；规则建议不会被自动批准。' : '人工模式下，所有建议均需人工审批。'}{state && !state.model.available && <span> 若刚完成 codex login，请重启后端刷新状态。</span>}</p></div>
-            <div className="decision-tabs" role="tablist" aria-label="决策台内容"><button role="tab" aria-selected={rightTab === 'proposals' && !historyFrame} onClick={() => setRightTab('proposals')} className={rightTab === 'proposals' && !historyFrame ? 'active' : ''} disabled={Boolean(historyFrame)}>待办建议<span>{pendingProposals.length}</span></button><button role="tab" aria-selected={rightTab === 'inspector' || Boolean(historyFrame)} onClick={() => setRightTab('inspector')} className={rightTab === 'inspector' || historyFrame ? 'active' : ''}>{historyFrame ? '历史节点' : '节点详情'}</button></div>
-            <div className="decision-content">{rightTab === 'proposals' && !historyFrame ? <>{proposals.length === 0 && <div className="empty-state"><ShieldCheck size={26} strokeWidth={1.3} /><strong>暂无待办建议</strong><p>推进仿真或注入环境扰动，观察信息状态变化与建议生成。</p></div>}{proposals.map(proposal => <ProposalCard key={proposal.id} proposal={proposal} state={state!} disabled={disabled} onReview={approve => mutate(proposal.id, `/api/proposals/${encodeURIComponent(proposal.id)}/review`, { approve })} />)}</> : selectedUnit ? <UnitInspector unit={selectedUnit} frame={frame!} history={state?.history ?? []} historical={Boolean(historyFrame)} /> : <div className="empty-state"><Compass size={28} strokeWidth={1.2} /><strong>{selected && selectedWasContact && !historyFrame ? '所选接触已过期归档' : '选择一个节点或接触'}</strong><p>{selected && selectedWasContact && !historyFrame ? '接触失效表示信息过期，不表示摧毁。后续新接触按新报告显示。' : '点击地图或左侧列表，查看已接入状态与已收到的接触报告。'}</p></div>}</div>
-            <div className="decision-foot"><ShieldCheck size={12} /><span>信息任务 · {aiMode ? 'AI 限定授权' : '人工审批'} · 来源记录</span></div>
+            {!historyFrame && <div className="model-box"><div className="model-title"><span className="model-icon"><Sparkles size={15} /></span><div><strong>{isCodex ? 'Codex · ChatGPT 订阅' : '规则基线'}</strong><span>{awaitingModelCleanup ? '停止已确认 · 等待模型进程清理' : modelBusy ? aiMode ? '自治研判中 · 时钟保持' : '正在生成研判…' : state?.model.last_run_tick != null ? `最近研判 ${tickLabel(state.model.last_run_tick)}` : isCodex ? '手动调用 · 尚未完成研判' : '确定性规则提供基础建议'}</span></div><span className={`model-status ${modelBusy ? 'busy' : state?.model.available ? '' : 'unavailable'}`} /> </div><button className="analyze-button" onClick={() => mutate('model', '/api/model/analyze', {})} disabled={disabled || !state?.model.available || modelBusy}>{modelBusy ? <LoaderCircle size={14} className="spin" /> : <Sparkles size={14} />}{awaitingModelCleanup ? '模型进程清理中' : modelBusy ? '研判进行中' : aiMode ? 'AI 信息自治运行中' : '生成模型研判'}<span>{aiMode ? '自动周期' : '手动触发'}</span></button>{state?.model.last_error && <div className="model-error"><TriangleAlert size={12} /><span>{state.model.last_error}</span></div>}<p className="model-note">{state?.model.detail || '正在读取模型接入状态。'} {aiMode ? '仅自动批准本轮校验通过的四类信息任务；规则建议不会被自动批准。' : '人工模式下，所有建议均需人工审批。'}{state && !state.model.available && <span> 若刚完成 codex login，请重启后端刷新状态。</span>}</p></div>}
+            <div className="decision-tabs with-comparison" role="tablist" aria-label="决策台内容">
+              <button role="tab" aria-selected={rightTab === 'proposals'} onClick={() => setRightTab('proposals')} className={rightTab === 'proposals' ? 'active' : ''}>{historyFrame ? '历史决策' : '建议与记录'}<span>{historyFrame ? decisionEvents.length : pendingProposals.length}</span></button>
+              <button role="tab" aria-selected={rightTab === 'compare'} onClick={() => setRightTab('compare')} className={rightTab === 'compare' ? 'active' : ''}>双节点对照</button>
+              <button role="tab" aria-selected={rightTab === 'inspector'} onClick={() => setRightTab('inspector')} className={rightTab === 'inspector' ? 'active' : ''}>{historyFrame ? '历史节点' : '节点详情'}</button>
+            </div>
+            <div className="decision-content">{!frame ? <div className="empty-state">等待仿真状态…</div> : rightTab === 'compare' ? (
+              <ReportComparison key={state?.run_id} versions={state?.report_versions} frame={frame} history={state?.history ?? []} log={state?.decision_log} onSeek={state && !state.running && !aiMode ? setHistoryFrame : undefined} />
+            ) : rightTab === 'proposals' ? <DecisionPanel log={state?.decision_log} frame={frame} cursor={decisionCursor} onCursorChange={setDecisionCursor} historical={Boolean(historyFrame)} liveProposals={state?.proposals} disabled={disabled} onReview={(id, approve) => mutate(id, `/api/proposals/${encodeURIComponent(id)}/review`, { approve })} /> : selectedUnit ? <UnitInspector unit={selectedUnit} frame={frame!} history={state?.history ?? []} historical={Boolean(historyFrame)} /> : <div className="empty-state"><Compass size={28} strokeWidth={1.2} /><strong>{selected && selectedWasContact && !historyFrame ? '所选接触已过期归档' : '选择一个节点或接触'}</strong><p>{selected && selectedWasContact && !historyFrame ? '接触失效表示信息过期，不表示摧毁。后续新接触按新报告显示。' : '点击地图或左侧列表，查看已接入状态与已收到的接触报告。'}</p></div>}</div>
+            <div className="decision-foot"><ShieldCheck size={12} /><span>{historyFrame ? '历史记录 · 只读回放 · 冻结依据' : `信息任务 · ${aiMode ? 'AI 限定授权' : '人工审批'} · 来源记录`}</span></div>
           </aside>
         </main>
 
         <section className="timeline-panel" ref={timelineRef} aria-label="实验时间线与事件记录">
-          <div className="playback-row"><div className="playback-buttons"><button className="play-button" disabled={state?.running || aiMode ? stopDisabled : disabled} onClick={() => state?.running || aiMode ? stopAutomation() : control('play')} aria-label={state?.running || aiMode ? '暂停仿真并停止自治' : '开始仿真'} title={state?.running || aiMode ? '暂停仿真并停止自治' : '开始仿真'}>{pending === 'play' || stopping ? <LoaderCircle size={17} className="spin" /> : state?.running || aiMode ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}</button><button className="icon-button" disabled={disabled || state?.running} onClick={() => control('step')} title="推进一个仿真步" aria-label="推进一个仿真步"><SkipForward size={17} /></button><button className="icon-button reset-button" disabled={disabled} onClick={() => { setSelected(null); control('reset'); }} title="重置当前实验" aria-label="重置当前实验"><RefreshCw size={15} /></button><span className="playback-divider" /><label className="speed-select"><select aria-label="仿真播放速度" value={state?.speed ?? 1} disabled={disabled} onChange={event => control('speed', Number(event.target.value))}><option value={1}>1×</option><option value={2}>2×</option><option value={4}>4×</option><option value={8}>8×</option></select><ChevronDown size={11} /></label></div><div className="tick-counter"><span>{tickLabel(frame?.tick ?? 0)}</span><small>SIM TICK</small></div><div className="timeline-track"><div className="timeline-track-label"><span>{state?.history[0] ? tickLabel(state.history[0].tick) : 'T+0000'}</span><span>{historyFrame ? '历史帧 · 操作已锁定' : state?.running ? aiMode && modelBusy ? '研判中 · 仿真时钟保持' : '实验进行中 · 暂停后可回看' : '拖动回看历史帧'}</span><span>{tickLabel(state?.tick ?? 0)}</span></div><input type="range" min="0" max={Math.max(0, (state?.history.length ?? 1) - 1)} value={historyIndex} disabled={!state || state.running || aiMode || state.history.length < 2} onChange={event => setHistoryFrame(state?.history[Number(event.target.value)] ?? null)} aria-label="历史帧回看" /></div><button className={`return-live ${historyFrame ? 'is-history' : ''}`} onClick={() => setHistoryFrame(null)} disabled={!historyFrame}><span className="small-dot" />{historyFrame ? '返回实时' : '实时'}{historyFrame && <ArrowRight size={12} />}</button></div>
-          <div className="event-strip"><div className="event-heading"><Clock3 size={13} /><span>事件流</span><span className="event-count">{state?.events.length ?? 0}</span></div><div className="event-list" aria-live="off">{(state?.events ?? []).slice(-3).reverse().map(event => <div key={event.id} className="event-item"><span>{tickLabel(event.tick)}</span><i className={event.kind.includes('error') || event.kind.includes('loss') ? 'warning' : ''} /><p title={event.message}>{event.message}</p></div>)}{!state?.events.length && <span className="event-empty">实验事件将在这里记录</span>}</div>{historyFrame && <span className="event-live-label">实时事件记录</span>}</div>
+          <div className="playback-row"><div className="playback-buttons"><button className="play-button" disabled={state?.running || aiMode ? stopDisabled : disabled} onClick={() => state?.running || aiMode ? stopAutomation() : control('play')} aria-label={state?.running || aiMode ? '暂停仿真并停止自治' : '开始仿真'} title={state?.running || aiMode ? '暂停仿真并停止自治' : '开始仿真'}>{pending === 'play' || stopping ? <LoaderCircle size={17} className="spin" /> : state?.running || aiMode ? <Pause size={16} fill="currentColor" /> : <Play size={16} fill="currentColor" />}</button><button className="icon-button" disabled={disabled || state?.running} onClick={() => control('step')} title="推进一个仿真步" aria-label="推进一个仿真步"><SkipForward size={17} /></button><button className="icon-button reset-button" disabled={disabled} onClick={() => { setSelected(null); control('reset'); }} title="重置当前实验" aria-label="重置当前实验"><RefreshCw size={15} /></button><span className="playback-divider" /><label className="speed-select"><select aria-label="仿真播放速度" value={state?.speed ?? 1} disabled={disabled} onChange={event => control('speed', Number(event.target.value))}><option value={1}>1×</option><option value={2}>2×</option><option value={4}>4×</option><option value={8}>8×</option></select><ChevronDown size={11} /></label></div><div className="tick-counter"><span>{tickLabel(frame?.tick ?? 0)}</span><small>SIM TICK</small></div><div className="timeline-track"><div className="timeline-track-label"><span>{state?.history[0] ? tickLabel(state.history[0].tick) : 'T+0000'}</span><span>{historyFrame ? '历史帧 · 操作已锁定' : state?.running ? aiMode && modelBusy ? '研判中 · 仿真时钟保持' : '实验进行中 · 暂停后可回看' : '拖动回看历史帧'}</span><span>{tickLabel(state?.tick ?? 0)}</span></div><input type="range" min="0" max={Math.max(0, (state?.history.length ?? 1) - 1)} value={historyIndex} disabled={!state || state.running || aiMode || state.history.length < 2} onChange={event => { setHistoryFrame(state?.history[Number(event.target.value)] ?? null); setRightTab(current => current === 'compare' ? 'compare' : 'proposals'); }} aria-label="历史帧回看" /></div><button className={`return-live ${historyFrame ? 'is-history' : ''}`} onClick={() => setHistoryFrame(null)} disabled={!historyFrame}><span className="small-dot" />{historyFrame ? '返回实时' : '实时'}{historyFrame && <ArrowRight size={12} />}</button></div>
+          <div className="event-strip">
+            <div className="event-heading"><Clock3 size={13} /><span>{historyFrame ? '历史决策' : '事件流'}</span><span className="event-count">{historyFrame ? decisionEvents.length : state?.events.length ?? 0}</span></div>
+            <div className="event-list">{historyFrame ? <>{decisionEvents.slice(-3).reverse().map(event => <div key={event.seq} className="event-item"><span>#{event.seq} · {tickLabel(event.tick)}</span><i className={['dropped', 'expired', 'stale'].includes(event.kind) ? 'warning' : ''} /><p title={event.note ?? decisionKindNames[event.kind]}>{decisionKindNames[event.kind]}{event.report_id ? ` · ${event.report_id}` : ''}{event.note ? ` · ${event.note}` : ''}</p></div>)}{!decisionEvents.length && <span className="event-empty">{frame?.decision_seq == null ? '此数据没有决策序列记录' : '当前截止位置尚无决策事件'}</span>}</> : <>{(state?.events ?? []).slice(-3).reverse().map(event => <div key={event.id} className="event-item"><span>{tickLabel(event.tick)}</span><i className={event.kind.includes('error') || event.kind.includes('loss') || event.kind.includes('drop') ? 'warning' : ''} /><p title={event.message}>{event.message}</p></div>)}{!state?.events.length && <span className="event-empty">实验事件将在这里记录</span>}</>}</div>
+            {historyFrame && <span className="event-live-label">仅所选决策序号之前的记录</span>}
+          </div>
         </section>
         <footer className="workspace-footer"><span><span className="small-dot" />研究演示环境<span className="footer-separator">/</span>参数、地理与事件均为合成</span><span>SEED {state?.seed ?? '—'}<span className="footer-separator">/</span>SCHEMA {state?.schema_version ?? '—'}<span className="footer-separator">/</span>C5ISR OBSERVATORY</span></footer>
       </div>
     </div>
 
-    {helpOpen && <div className="modal-backdrop" onClick={() => setHelpOpen(false)}><section className="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={event => event.stopPropagation()}><button className="icon-button modal-close" autoFocus onClick={() => setHelpOpen(false)} aria-label="关闭使用说明"><X size={18} /></button><span className="eyebrow">EXPERIMENT GUIDE</span><h2 id="help-title">观察一次信息决策闭环</h2><p>本实验使用真实型号名称作为显示标签，全部能力参数、地理位置和状态变化均为合成。标有「概念」的型号不代表已确认服役或真实性能。</p><p className="symbol-guide">符号由 milsymbol 3.0.4 的 APP6 配置生成，外框同时区分阵营与域；下表是通用域别示例，具体节点按类型显示库内符号。青蓝与琥珀是本应用配色，不声明整个界面完整符合 APP-6 标准。</p><SymbolLegend /><p className="symbol-motion-guide">符号本体固定朝向；独立箭头表示位移方向，长度仅示意。速度由公开位置差分得到，单位 grid/tick；数据不足时显示未知。</p><ol><li><strong>推进仿真</strong><span>点击播放或单步，按所选感知周期生成观测。对照单位仅在报告送达后成为接触，位置是最近报告值；过期后归档。</span></li><li><strong>注入扰动</strong><span>制造链路中断或观测噪声，检验信息协同的变化。</span></li><li><strong>生成与审核建议</strong><span>人工模式可手动研判并审核建议。开启 AI 信息自治后，模型按至少 60 秒的墙钟间隔持续调用，消耗订阅额度；只自动批准本轮有效的信息复核、链路恢复、请求观测或继续观察。可随时停止。</span></li><li><strong>回看与导出</strong><span>暂停后拖动时间线查看历史节点、链路与指标。导出 JSON 保存实验记录。</span></li></ol><div className="guide-note"><ShieldCheck size={17} /><span>范围：信息协同、人工审阅与有限信息任务自治。接触归档表示信息过期；不提供打击、摧毁、武器效能或目标分配功能。</span></div></section></div>}
+    {helpOpen && <div className="modal-backdrop" onClick={() => setHelpOpen(false)}><section className="help-dialog" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={event => event.stopPropagation()}><button className="icon-button modal-close" autoFocus onClick={() => setHelpOpen(false)} aria-label="关闭使用说明"><X size={18} /></button><span className="eyebrow">EXPERIMENT GUIDE</span><h2 id="help-title">观察一次信息决策闭环</h2><p>本实验使用真实型号名称作为显示标签，全部能力参数、地理位置和状态变化均为合成。标有「概念」的型号不代表已确认服役或真实性能。</p><p className="symbol-guide">符号由 milsymbol 3.0.4 的 APP6 配置生成，外框同时区分阵营与域；下表是通用域别示例，具体节点按类型显示库内符号。青蓝与琥珀是本应用配色，不声明整个界面完整符合 APP-6 标准。</p><SymbolLegend /><p className="symbol-motion-guide">符号本体固定朝向；独立箭头表示位移方向，长度仅示意。速度由公开位置差分得到，单位 grid/tick；数据不足时显示未知。</p><ol><li><strong>推进仿真</strong><span>点击播放或单步，按所选感知周期生成观测。对照单位仅在报告送达后成为接触，位置是最近报告值；过期后归档。</span></li><li><strong>注入扰动</strong><span>制造链路中断或观测噪声，检验信息协同的变化。</span></li><li><strong>生成与审核建议</strong><span>人工模式可手动研判并审核建议。开启 AI 信息自治后，模型按至少 60 秒的墙钟间隔持续调用，消耗订阅额度；只自动批准本轮有效的信息复核、链路恢复、请求观测或继续观察。可随时停止。</span></li><li><strong>回看与导出</strong><span>暂停后拖动时间线查看历史态势与决策；同一步内可按事件序号检查当时依据。导出 JSON 后，可在「本地回放」新标签页读取，不影响实时系统。</span></li></ol><div className="guide-note"><ShieldCheck size={17} /><span>范围：信息协同、人工审阅与有限信息任务自治。接触归档表示信息过期；不提供打击、摧毁、武器效能或目标分配功能。</span></div></section></div>}
   </div>;
-}
-
-function ProposalCard({ proposal, state, disabled, onReview }: { proposal: Proposal; state: Snapshot; disabled: boolean; onReview: (approve: boolean) => void }) {
-  const [expanded, setExpanded] = useState(false);
-  const subject = state.units.find(unit => unit.id === proposal.subject_id);
-  return <article className={`proposal-card status-${proposal.status}`}><div className="proposal-meta"><span className={`proposal-source ${proposal.source}`}>{proposal.source === 'codex' ? <Sparkles size={11} /> : <Network size={11} />}{proposal.source === 'codex' ? 'Codex 模型' : '规则基线'}</span><span className="proposal-tick">{tickLabel(proposal.created_tick)}</span></div><div className="proposal-title-row"><h3>{proposal.title}</h3><span className="action-tag">{actionNames[proposal.action]}</span></div>{subject && <span className="proposal-subject"><CircleDot size={10} />{subject.name} · {subject.model_label}</span>}<p className="proposal-rationale">{proposal.rationale}</p><div className="proposal-effect"><ArrowRight size={11} /><span>{proposal.expected_effect}</span></div><button className="evidence-toggle" onClick={() => setExpanded(value => !value)} aria-expanded={expanded}><ChevronRight size={12} className={expanded ? 'rotated' : ''} /><span>{proposal.evidence_ids.length} 条证据 · {proposal.uncertainties.length} 项不确定性</span></button>{expanded && <div className="evidence-body">{proposal.evidence_ids.map(id => { const observation = state.observations.find(item => item.id === id); return <p key={id}><span>{id}</span>{observation ? `${observation.note}（置信度 ${pct(observation.confidence)}）` : '证据已移出保留窗口，当前无法查看原文。'}</p>; })}{proposal.uncertainties.map((item, index) => <p className="uncertainty" key={index}><TriangleAlert size={11} />{item}</p>)}{proposal.evidence_ids.length === 0 && <p>当前建议未附独立观测证据。</p>}</div>}{proposal.status === 'pending' ? <div className="review-actions"><button className="approve-button" disabled={disabled} onClick={() => onReview(true)}><Check size={13} />批准执行</button><button className="reject-button" disabled={disabled} onClick={() => onReview(false)}>驳回</button></div> : <div className={`proposal-result ${proposal.status}`}><span>{proposal.status === 'completed' ? <Check size={12} /> : <CircleDot size={12} />}{statusNames[proposal.status]}</span>{proposal.outcome && <p>{proposal.outcome}</p>}</div>}</article>;
 }
 
 function AutomationBar({ state, historical, startDisabled, stopDisabled, stopping, onStart, onStop }: {
@@ -250,12 +267,12 @@ function AutomationBar({ state, historical, startDisabled, stopDisabled, stoppin
       <span>{ai ? `已完成 ${automation?.cycles_completed ?? 0} 轮 · 自动批准 ${automation?.auto_approved ?? 0} 项` : '仅限信息复核、链路恢复、请求观测、继续观察'}{ai && automation?.next_run_in_seconds != null && <b> · 下轮约 {automation.next_run_in_seconds}s</b>}</span>
     </div>
     <div className="automation-budget"><Clock3 size={12} /><span>调用间隔 ≥ {automation?.interval_seconds ?? 60}s<strong>开启后持续消耗订阅额度</strong></span></div>
-    <button className="stop-automation" onClick={onStop} disabled={stopDisabled || (!ai && !state?.running && !busy)}>{stopping ? <LoaderCircle size={13} className="spin" /> : <Pause size={12} />}停止并暂停</button>
+    <button className="stop-automation" onClick={onStop} disabled={stopDisabled}>{stopping ? <LoaderCircle size={13} className="spin" /> : <Pause size={12} />}停止并暂停</button>
     {automation?.last_error && <div className="automation-error" role="alert"><TriangleAlert size={12} /><span>{automation.last_error} 已停止后续调用；处理后可重新开启。</span></div>}
   </section>;
 }
 
-function UnitInspector({ unit, frame, history, historical }: { unit: Unit; frame: Frame; history: Frame[]; historical: boolean }) {
+export function UnitInspector({ unit, frame, history, historical }: { unit: Unit; frame: Frame; history: Frame[]; historical: boolean }) {
   const contact = unit.side === 'red';
   const motion = deriveMotion(unit.id, frame, history);
   const links = frame.links.filter(link => link.from === unit.id || link.to === unit.id);

@@ -6,8 +6,11 @@
 //! require an explicit review before execution. It contains no engagement model.
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
+
+mod report_versions;
+pub use report_versions::ReportVersion;
 
 const COMMAND: &str = "command";
 const MAX_HISTORY: usize = 360;
@@ -21,6 +24,10 @@ const MAX_HIDDEN_OBJECTS: usize = 8;
 const MAX_ACTIVE_CONTACTS: usize = 12;
 const MAX_CONTACT_TOMBSTONES: usize = 64;
 const HIDDEN_BIRTH_INTERVAL: u64 = 12;
+const REPORT_MAX_AGE: u64 = 60;
+// A paused client can otherwise create/reject infinitely many proposals at one tick.
+// Never discard required replay evidence to make room; reject additional proposals.
+const MAX_DECISION_GROUPS: usize = 2048;
 static INSTANCE: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -110,6 +117,27 @@ pub struct SimEvent {
     pub related_id: Option<String>,
 }
 
+/// Immutable decision and report facts, separate from the rolling observation window.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct DecisionEvent {
+    pub seq: u64,
+    pub tick: u64,
+    pub proposal_id: String,
+    pub kind: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub actor: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub proposal: Option<Proposal>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub evidence: Option<Vec<Observation>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub report_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sampled_tick: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Metrics {
     pub delivered: u64,
@@ -132,6 +160,8 @@ pub struct Perception {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Frame {
     pub tick: u64,
+    #[serde(default)]
+    pub decision_seq: u64,
     pub units: Vec<Unit>,
     pub links: Vec<Link>,
     pub metrics: Metrics,
@@ -151,6 +181,10 @@ pub struct Snapshot {
     pub observations: Vec<Observation>,
     pub proposals: Vec<Proposal>,
     pub events: Vec<SimEvent>,
+    #[serde(default)]
+    pub decision_log: Vec<DecisionEvent>,
+    #[serde(default)]
+    pub report_versions: Vec<ReportVersion>,
     pub metrics: Metrics,
     pub perception: Perception,
     pub history: Vec<Frame>,
@@ -162,6 +196,10 @@ struct QueuedMessage {
     due: u64,
     /// Captured observation coordinates/labels, not a live reference to hidden truth.
     contact_report: Option<Unit>,
+    /// Supplementary reports retain ownership after their proposal completes.
+    proposal_id: Option<String>,
+    buffered: bool,
+    last_attempt_tick: Option<u64>,
 }
 
 /// Private scenario state. This type is deliberately not serializable.
@@ -179,6 +217,8 @@ pub struct Engine {
     rng: u64,
     world_rng: u64,
     event_seq: u64,
+    decision_seq: u64,
+    decision_retention: HashMap<String, u64>,
     observation_seq: u64,
     proposal_seq: u64,
     latency_total: u64,
@@ -222,6 +262,8 @@ impl Engine {
                 observations: Vec::new(),
                 proposals: Vec::new(),
                 events: Vec::new(),
+                decision_log: Vec::new(),
+                report_versions: Vec::new(),
                 metrics: Metrics {
                     delivered: 0,
                     dropped: 0,
@@ -242,6 +284,8 @@ impl Engine {
             rng: seed ^ 0xa076_1d64_78bd_642f,
             world_rng: seed ^ 0xe703_7ed1_a0b4_28db,
             event_seq: 0,
+            decision_seq: 0,
+            decision_retention: HashMap::new(),
             observation_seq: 0,
             proposal_seq: 0,
             latency_total: 0,
@@ -256,6 +300,7 @@ impl Engine {
         for index in 1..engine.state.units.len() {
             let confidence = 0.64 + engine.random() * 0.25;
             let unit = &engine.state.units[index];
+            let own_source = unit.side == "blue" && unit.id != COMMAND;
             let source = if unit.side == "blue" {
                 unit.id.clone()
             } else {
@@ -267,6 +312,9 @@ impl Engine {
                 confidence,
                 "初始合成信息样本；不代表实际侦察能力",
             );
+            if own_source {
+                engine.issue_report_version(&observation, None);
+            }
             engine.receive(observation);
         }
         engine.event(
@@ -284,11 +332,19 @@ impl Engine {
         self.state.clone()
     }
 
+    /// Borrow the current public view without cloning replay history or evidence.
+    pub fn current(&self) -> &Snapshot {
+        &self.state
+    }
+
     /// Advance exactly one tick. A scheduler owns wall time, running, and speed.
     pub fn step(&mut self) {
         self.state.tick += 1;
+        self.deliver_field_copies();
         self.expire_proposals();
+        self.ensure_offline_request(false);
         self.process_actions();
+        self.resume_buffered_reports();
         self.move_symbols();
         self.advance_hidden_world();
         for _ in 0..2 {
@@ -370,6 +426,8 @@ impl Engine {
                     "实验注入：合成链路中断与延迟上升",
                     Some("link-pla-kj700"),
                 );
+                self.interrupt_disconnected_messages();
+                self.ensure_offline_request(true);
             }
             "sensor_noise" => {
                 self.noisy_until = self.state.tick + 24;
@@ -391,6 +449,7 @@ impl Engine {
                     "实验恢复：合成链路和观察噪声恢复基准状态",
                     None,
                 );
+                self.resume_buffered_reports();
             }
             _ => return Err(format!("未知实验注入类型：{kind}")),
         }
@@ -400,6 +459,16 @@ impl Engine {
     }
 
     pub fn review(&mut self, id: &str, approve: bool) -> Result<(), String> {
+        self.review_as(id, approve, "human")
+    }
+
+    /// Only the server's explicitly enabled AI scheduler may use this entry point.
+    /// Baseline proposals can never be swept into automatic approval.
+    pub fn review_automatic(&mut self, id: &str) -> Result<(), String> {
+        self.review_as(id, true, "ai")
+    }
+
+    fn review_as(&mut self, id: &str, approve: bool, actor: &str) -> Result<(), String> {
         let index = self
             .state
             .proposals
@@ -407,6 +476,9 @@ impl Engine {
             .position(|p| p.id == id)
             .ok_or_else(|| "找不到建议".to_string())?;
         let proposal = &self.state.proposals[index];
+        if actor == "ai" && proposal.source != "codex" {
+            return Err("自动审批仅支持本轮模型建议，规则基线须人工审阅".into());
+        }
         if proposal.status != "pending" {
             return Err("只有待审阅建议可以批准或拒绝".into());
         }
@@ -429,6 +501,17 @@ impl Engine {
             },
             Some(id),
         );
+        self.record_decision(
+            id,
+            if approve { "approved" } else { "rejected" },
+            Some(actor),
+            Some(if approve {
+                "建议已批准；尚未执行"
+            } else {
+                "建议已拒绝；未执行任何动作"
+            }),
+        );
+        self.replace_current_frame();
         Ok(())
     }
 
@@ -436,6 +519,9 @@ impl Engine {
     pub fn add_model_proposals(&mut self, proposals: Vec<ModelProposal>) -> Result<(), String> {
         if proposals.is_empty() || proposals.len() > 4 {
             return Err("每批模型建议数量必须在 1..4 之间".into());
+        }
+        if self.decision_retention.len() + proposals.len() > MAX_DECISION_GROUPS {
+            return Err("决策档案窗口已满；请推进仿真使旧档案离开回看窗口后再生成建议".into());
         }
         let active = self
             .state
@@ -468,6 +554,7 @@ impl Engine {
             self.insert_proposal(proposal, "codex");
         }
         self.trim_proposals();
+        self.replace_current_frame();
         Ok(())
     }
 
@@ -614,16 +701,50 @@ impl Engine {
         self.enqueue_message(observation, None);
     }
 
-    fn enqueue_message(&mut self, mut observation: Observation, contact_report: Option<Unit>) {
+    fn enqueue_message(&mut self, observation: Observation, contact_report: Option<Unit>) {
+        self.dispatch_message(QueuedMessage {
+            observation,
+            due: 0,
+            contact_report,
+            proposal_id: None,
+            buffered: false,
+            last_attempt_tick: None,
+        });
+    }
+
+    fn dispatch_message(&mut self, mut message: QueuedMessage) {
+        if self.expire_report(&message) {
+            return;
+        }
         let link = self
             .state
             .links
             .iter()
-            .find(|l| l.from == observation.source_id)
+            .find(|l| l.from == message.observation.source_id)
             .unwrap()
             .clone();
+        if !link.enabled && message.proposal_id.is_some() {
+            if !message.buffered {
+                self.record_report(
+                    &message,
+                    "buffered",
+                    "链路离线，补充样本留在本地暂存；尚未接收",
+                );
+            }
+            message.buffered = true;
+            self.queue.push(message);
+            return;
+        }
+        // Recovery and re-injection may happen many times while paused. One actual
+        // send attempt per sample per tick keeps the journal and random draws bounded.
+        if message.last_attempt_tick == Some(self.state.tick) {
+            self.queue.push(message);
+            return;
+        }
+        message.last_attempt_tick = Some(self.state.tick);
         if !link.enabled || self.random() > link.quality {
             self.state.metrics.dropped += 1;
+            self.record_report(&message, "dropped", "补充样本传输丢失；未接收，不自动重试");
             self.event(
                 "drop",
                 "合成传输丢失；该消息未进入已接收证据",
@@ -632,12 +753,15 @@ impl Engine {
             return;
         }
         let due = self.state.tick + link.latency_ticks + (self.random() * 3.0) as u64;
-        observation.received_tick = due;
-        self.queue.push(QueuedMessage {
-            observation,
-            due,
-            contact_report,
-        });
+        message.observation.received_tick = due;
+        message.due = due;
+        message.buffered = false;
+        self.record_report(
+            &message,
+            "sent",
+            &format!("补充样本已发送，预计 tick {due} 到达；尚未接收"),
+        );
+        self.queue.push(message);
         self.event(
             "transmit",
             &format!("消息排入传输队列，预计 tick {due} 到达"),
@@ -645,17 +769,101 @@ impl Engine {
         );
     }
 
+    fn expire_report(&mut self, message: &QueuedMessage) -> bool {
+        if message.proposal_id.is_some()
+            && self
+                .state
+                .tick
+                .saturating_sub(message.observation.observed_tick)
+                >= REPORT_MAX_AGE
+        {
+            self.state.metrics.dropped += 1;
+            self.record_report(
+                message,
+                "expired",
+                "补充样本自采样起已满 60 tick，过期移出队列；未接收",
+            );
+            true
+        } else {
+            false
+        }
+    }
+
+    fn interrupt_disconnected_messages(&mut self) {
+        let messages = std::mem::take(&mut self.queue);
+        for mut message in messages {
+            let enabled = self
+                .state
+                .links
+                .iter()
+                .find(|link| link.from == message.observation.source_id)
+                .is_some_and(|link| link.enabled);
+            if enabled || message.buffered {
+                self.queue.push(message);
+            } else if message.proposal_id.is_some() {
+                message.buffered = true;
+                self.record_report(
+                    &message,
+                    "buffered",
+                    "传输途中链路中断，原采样返回暂存；尚未接收",
+                );
+                self.queue.push(message);
+            } else {
+                self.state.metrics.dropped += 1;
+                self.event("drop", "传输途中链路中断，普通合成消息丢失；未接收", None);
+            }
+        }
+    }
+
+    fn resume_buffered_reports(&mut self) {
+        let messages = std::mem::take(&mut self.queue);
+        for message in messages {
+            if self.expire_report(&message) {
+                continue;
+            }
+            let enabled = self
+                .state
+                .links
+                .iter()
+                .find(|link| link.from == message.observation.source_id)
+                .is_some_and(|link| link.enabled);
+            if message.buffered && enabled {
+                self.dispatch_message(message);
+            } else {
+                self.queue.push(message);
+            }
+        }
+    }
+
     fn deliver_due(&mut self) {
         let mut ready = Vec::new();
         self.queue.retain(|message| {
-            if message.due <= self.state.tick {
+            if !message.buffered && message.due <= self.state.tick {
                 ready.push(message.clone());
                 false
             } else {
                 true
             }
         });
-        for message in ready {
+        for mut message in ready {
+            if self.expire_report(&message) {
+                continue;
+            }
+            let enabled = self
+                .state
+                .links
+                .iter()
+                .find(|link| link.from == message.observation.source_id)
+                .is_some_and(|link| link.enabled);
+            if !enabled {
+                self.dispatch_message(message);
+                continue;
+            }
+            message.observation.received_tick = self.state.tick;
+            if message.proposal_id.is_some() {
+                self.record_center_receipt(&message.observation);
+            }
+            self.record_report(&message, "received", "补充样本已实际接收；采样时间保持不变");
             if let Some(report) = message.contact_report {
                 self.receive_contact(message.observation, report);
             } else {
@@ -979,6 +1187,12 @@ impl Engine {
                     self.state.proposals[index].outcome =
                         Some(format!("完成前证据校验未通过：{error}；未应用动作"));
                     self.event("stale", "执行期间证据已失效；未应用信息管理动作", Some(&id));
+                    self.record_decision(
+                        &id,
+                        "stale",
+                        None,
+                        Some(&format!("完成前证据校验未通过：{error}；未应用动作")),
+                    );
                     continue;
                 }
                 let outcome = self.apply_action(&proposal);
@@ -987,6 +1201,7 @@ impl Engine {
                 self.state.proposals[index].outcome = Some(outcome.clone());
                 self.state.metrics.completed_tasks += 1;
                 self.event("feedback", &outcome, Some(&id));
+                self.record_decision(&id, "completed", None, Some(&outcome));
             }
         }
         let approved: Vec<usize> = self
@@ -1008,6 +1223,12 @@ impl Engine {
                     "已批准建议的证据不可用，需重新生成并审阅",
                     Some(&proposal.id),
                 );
+                self.record_decision(
+                    &proposal.id,
+                    "stale",
+                    None,
+                    Some(&format!("执行前校验未通过：{error}")),
+                );
                 continue;
             }
             self.state.proposals[index].status = "executing".into();
@@ -1016,6 +1237,12 @@ impl Engine {
                 "execute",
                 "已批准的信息管理动作开始执行",
                 Some(&proposal.id),
+            );
+            self.record_decision(
+                &proposal.id,
+                "executing",
+                None,
+                Some("已批准的信息管理动作开始执行"),
             );
         }
     }
@@ -1059,19 +1286,32 @@ impl Engine {
                     .iter()
                     .position(|u| u.id == proposal.subject_id)
                     .unwrap();
-                let mut observation = self.make_observation(
+                let noisy = self.noisy_until != 0 && self.state.tick <= self.noisy_until;
+                let confidence = if noisy {
+                    0.28 + self.random() * 0.28
+                } else {
+                    0.68 + self.random() * 0.25
+                };
+                let observation = self.make_observation(
                     index,
                     proposal.subject_id.clone(),
-                    0.86,
-                    "经批准的信息补充样本；所有数值为合成数据",
+                    confidence,
+                    if noisy {
+                        "经批准的信息补充样本；受合成噪声影响，所有数值为合成数据"
+                    } else {
+                        "经批准的信息补充样本；所有数值为合成数据"
+                    },
                 );
-                observation.received_tick = self.state.tick + 1;
-                self.queue.push(QueuedMessage {
+                self.issue_report_version(&observation, Some(&proposal.id));
+                self.dispatch_message(QueuedMessage {
                     observation,
-                    due: self.state.tick + 1,
+                    due: 0,
                     contact_report: None,
+                    proposal_id: Some(proposal.id.clone()),
+                    buffered: false,
+                    last_attempt_tick: None,
                 });
-                "反馈：补充合成信息样本已排队，预计下一 tick 到达".into()
+                "反馈：补充样本采集动作已执行；发送、接收或失败另见报告事件，完成不表示送达".into()
             }
             "hold" => "反馈：已记录暂缓判断；未改变任何节点或链路状态".into(),
             _ => unreachable!("Only validated proposal actions enter execution"),
@@ -1099,6 +1339,90 @@ impl Engine {
         }
         for id in expired {
             self.event("stale", "建议或证据失效，需重新生成并审阅", Some(&id));
+            self.record_decision(
+                &id,
+                "stale",
+                None,
+                Some("建议或证据已过期 / 移出证据窗口；未执行"),
+            );
+        }
+    }
+
+    fn ensure_offline_request(&mut self, explicit_injection: bool) {
+        let offline: Vec<String> = self
+            .state
+            .links
+            .iter()
+            .filter(|link| !link.enabled)
+            .map(|link| link.from.clone())
+            .collect();
+        for subject_id in offline {
+            if self.has_active("request_observation", &subject_id)
+                || self.queue.iter().any(|message| {
+                    message.proposal_id.is_some() && message.observation.source_id == subject_id
+                })
+                || self
+                    .state
+                    .proposals
+                    .iter()
+                    .filter(|p| is_active(&p.status))
+                    .count()
+                    >= 12
+                || self.decision_retention.len() >= MAX_DECISION_GROUPS
+            {
+                continue;
+            }
+            // Rejection is respected for at least twelve ticks. Expired evidence
+            // gets a new proposal, never a silent extension of the old approval.
+            if !explicit_injection
+                && self.state.proposals.iter().any(|p| {
+                    p.action == "request_observation"
+                        && p.subject_id == subject_id
+                        && self.state.tick.saturating_sub(p.created_tick) < 12
+                })
+            {
+                continue;
+            }
+            let index = self
+                .state
+                .units
+                .iter()
+                .position(|u| u.id == subject_id)
+                .unwrap();
+            let evidence = self.make_observation(
+                index,
+                COMMAND.into(),
+                0.95,
+                "指挥端本地记录：合成链路处于离线；不是远端节点的新报告，不更新节点信息新鲜度",
+            );
+            let evidence_id = evidence.id.clone();
+            // A local control fact is evidence, not a successfully transported message.
+            self.state.observations.push(evidence);
+            trim_front(&mut self.state.observations, MAX_OBSERVATIONS);
+            self.event(
+                "local_link_status",
+                "已记录本地链路离线状态，可作为信息补报/恢复的审批依据",
+                Some(&evidence_id),
+            );
+            self.insert_proposal(
+                ModelProposal {
+                    title: "请求断链节点补充信息".into(),
+                    rationale:
+                        "本地链路状态显示离线；可批准一次合成补充采样，样本离线暂存并等待链路恢复。"
+                            .into(),
+                    action: "request_observation".into(),
+                    subject_id,
+                    evidence_ids: vec![evidence_id],
+                    uncertainties: vec![
+                        "本地离线记录不证明远端节点当前状态；补报可能丢失或在采样 60 tick 后过期。"
+                            .into(),
+                    ],
+                    expected_effect: "人工批准后执行合成采样；恢复前不会送达，接收结果单独记载。"
+                        .into(),
+                },
+                "baseline",
+            );
+            self.trim_proposals();
         }
     }
 
@@ -1212,6 +1536,14 @@ impl Engine {
     }
 
     fn insert_proposal(&mut self, proposal: ModelProposal, source: &str) {
+        if self.decision_retention.len() >= MAX_DECISION_GROUPS {
+            self.event(
+                "capacity",
+                "决策档案窗口已满，本轮未生成额外基线；已有任务和回看证据保留",
+                None,
+            );
+            return;
+        }
         self.proposal_seq += 1;
         let id = format!("proposal-{:05}", self.proposal_seq);
         self.event(
@@ -1224,7 +1556,7 @@ impl Engine {
             Some(&id),
         );
         self.state.proposals.push(Proposal {
-            id,
+            id: id.clone(),
             title: proposal.title,
             rationale: proposal.rationale,
             action: proposal.action,
@@ -1238,6 +1570,7 @@ impl Engine {
             source: source.into(),
             outcome: None,
         });
+        self.record_decision(&id, "created", None, None);
     }
 
     fn trim_proposals(&mut self) {
@@ -1248,7 +1581,10 @@ impl Engine {
                 .iter()
                 .position(|p| !is_active(&p.status))
             {
-                self.state.proposals.remove(index);
+                let removed = self.state.proposals.remove(index);
+                // Retain the group's starting state until every frame that could
+                // still display this proposal has left the history window.
+                self.decision_retention.insert(removed.id, self.state.tick);
             } else {
                 break;
             }
@@ -1269,7 +1605,7 @@ impl Engine {
                     self.state
                         .observations
                         .iter()
-                        .filter(|o| o.unit_id == unit.id)
+                        .filter(|o| o.unit_id == unit.id && o.source_id != COMMAND)
                         .map(|o| o.observed_tick)
                         .max()
                 });
@@ -1326,18 +1662,97 @@ impl Engine {
         trim_front(&mut self.state.events, MAX_EVENTS);
     }
 
-    fn record_frame(&mut self) {
-        self.state.history.push(Frame {
-            tick: self.state.tick,
-            units: self.state.units.clone(),
-            links: self.state.links.clone(),
-            metrics: self.state.metrics.clone(),
-            perception: self.state.perception.clone(),
+    fn record_decision(&mut self, id: &str, kind: &str, actor: Option<&str>, note: Option<&str>) {
+        let proposal = self
+            .state
+            .proposals
+            .iter()
+            .find(|proposal| proposal.id == id)
+            .unwrap();
+        let evidence = matches!(kind, "created" | "approved" | "rejected").then(|| {
+            proposal
+                .evidence_ids
+                .iter()
+                .filter_map(|id| {
+                    self.state
+                        .observations
+                        .iter()
+                        .find(|observation| &observation.id == id)
+                        .cloned()
+                })
+                .collect()
         });
-        trim_front(&mut self.state.history, MAX_HISTORY);
+        let event = DecisionEvent {
+            seq: 0,
+            tick: self.state.tick,
+            proposal_id: id.into(),
+            kind: kind.into(),
+            actor: actor.map(str::to_string),
+            proposal: (kind == "created").then(|| proposal.clone()),
+            evidence,
+            report_id: None,
+            sampled_tick: None,
+            note: note.map(str::to_string),
+        };
+        self.push_decision_event(event);
     }
 
-    fn replace_current_frame(&mut self) {
+    fn record_report(&mut self, message: &QueuedMessage, kind: &str, note: &str) {
+        let Some(proposal_id) = &message.proposal_id else {
+            return;
+        };
+        self.push_decision_event(DecisionEvent {
+            seq: 0,
+            tick: self.state.tick,
+            proposal_id: proposal_id.clone(),
+            kind: kind.into(),
+            actor: None,
+            proposal: None,
+            evidence: (kind == "received").then(|| vec![message.observation.clone()]),
+            report_id: Some(message.observation.id.clone()),
+            sampled_tick: Some(message.observation.observed_tick),
+            note: Some(note.into()),
+        });
+    }
+
+    fn push_decision_event(&mut self, mut event: DecisionEvent) {
+        self.decision_seq += 1;
+        event.seq = self.decision_seq;
+        self.decision_retention
+            .insert(event.proposal_id.clone(), self.state.tick);
+        self.state.decision_log.push(event);
+    }
+
+    fn prune_decision_log(&mut self) {
+        let oldest_tick = self
+            .state
+            .history
+            .first()
+            .map_or(self.state.tick, |frame| frame.tick);
+        let mut protected: HashSet<String> =
+            self.state.proposals.iter().map(|p| p.id.clone()).collect();
+        protected.extend(
+            self.queue
+                .iter()
+                .filter_map(|message| message.proposal_id.clone()),
+        );
+        protected.extend(self.executions.iter().map(|(id, _)| id.clone()));
+        // A still-held edition can outlive the proposal list and the frame where
+        // it was sampled. Preserve its approval and central transport outcome.
+        protected.extend(
+            self.state
+                .report_versions
+                .iter()
+                .filter_map(|row| row.proposal_id.clone()),
+        );
+        self.decision_retention
+            .retain(|id, last_tick| *last_tick >= oldest_tick || protected.contains(id));
+        self.state
+            .decision_log
+            .retain(|event| self.decision_retention.contains_key(&event.proposal_id));
+    }
+
+    fn record_frame(&mut self) {
         if self
             .state
             .history
@@ -1346,6 +1761,20 @@ impl Engine {
         {
             self.state.history.pop();
         }
+        self.state.history.push(Frame {
+            tick: self.state.tick,
+            decision_seq: self.decision_seq,
+            units: self.state.units.clone(),
+            links: self.state.links.clone(),
+            metrics: self.state.metrics.clone(),
+            perception: self.state.perception.clone(),
+        });
+        trim_front(&mut self.state.history, MAX_HISTORY);
+        self.prune_report_versions();
+        self.prune_decision_log();
+    }
+
+    fn replace_current_frame(&mut self) {
         self.record_frame();
     }
 }
@@ -1514,6 +1943,9 @@ fn initial_units() -> Vec<Unit> {
         )
         .collect()
 }
+
+#[cfg(test)]
+mod decision_tests;
 
 #[cfg(test)]
 mod tests {
@@ -1711,6 +2143,13 @@ mod tests {
     #[test]
     fn approved_observation_request_has_delayed_feedback_sample() {
         let mut engine = Engine::new(27);
+        engine
+            .state
+            .links
+            .iter_mut()
+            .find(|link| link.from == "pla-j20")
+            .unwrap()
+            .quality = 1.0;
         let mut request = valid_hold(&engine);
         request.action = "request_observation".into();
         request.subject_id = "pla-j20".into();
@@ -1727,7 +2166,16 @@ mod tests {
                 .iter()
                 .any(|o| o.note.contains("经批准的信息补充样本"))
         );
-        engine.step();
+        let due = engine
+            .queue
+            .iter()
+            .find(|message| message.proposal_id.as_deref() == Some(&id))
+            .unwrap()
+            .due;
+        assert!((4..=6).contains(&due));
+        while engine.state.tick < due {
+            engine.step();
+        }
         let observation = engine
             .state
             .observations
@@ -1736,8 +2184,8 @@ mod tests {
             .unwrap();
         assert_eq!(observation.unit_id, "pla-j20");
         assert_eq!(observation.observed_tick, 2);
-        assert_eq!(observation.received_tick, 3);
-        assert_eq!(observation.confidence, 0.86);
+        assert_eq!(observation.received_tick, due);
+        assert!((0.68..=0.93).contains(&observation.confidence));
     }
 
     #[test]
@@ -1796,11 +2244,18 @@ mod tests {
         let mut request = valid_hold(&engine);
         request.action = "request_observation".into();
         request.subject_id = "pla-004".into();
+        engine
+            .state
+            .links
+            .iter_mut()
+            .find(|link| link.from == "pla-004")
+            .unwrap()
+            .quality = 1.0;
         request.evidence_ids = vec![engine.latest_evidence("pla-004").unwrap()];
         engine.add_model_proposals(vec![request]).unwrap();
         let proposal_id = engine.state.proposals.last().unwrap().id.clone();
         engine.review(&proposal_id, true).unwrap();
-        for _ in 0..3 {
+        for _ in 0..6 {
             engine.step();
         }
         assert_eq!(
@@ -1820,7 +2275,7 @@ mod tests {
                 .iter()
                 .any(|observation| observation.unit_id == "pla-004"
                     && observation.note.contains("经批准的信息补充样本")
-                    && observation.received_tick == 3)
+                    && (4..=6).contains(&observation.received_tick))
         );
     }
 

@@ -1,0 +1,2475 @@
+{
+  "kind": "c5isr-synthetic-experiment",
+  "schema_version": 1,
+  "scenario_version": "archipelago-2-own-view",
+  "snapshot": {
+    "seed": 20261022,
+    "tick": 10,
+    "history": [
+      {
+        "decision_seq": 3,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": false,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 9,
+            "quality": 0.08,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 7,
+            "quality": 0.23,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 0,
+          "completed_tasks": 0,
+          "delivered": 7,
+          "dropped": 0,
+          "freshness": 1,
+          "pending_messages": 0
+        },
+        "perception": {
+          "active_contacts": 0,
+          "cycle_ticks": 8,
+          "next_scan_tick": 8,
+          "total_archived": 0,
+          "total_discovered": 0
+        },
+        "tick": 0,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35,
+            "y": 29
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "offline",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 24,
+            "y": 37
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "degraded",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 37,
+            "y": 62
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 42,
+            "y": 19
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 29,
+            "y": 76
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 44,
+            "y": 82
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 44,
+            "y": 54
+          }
+        ]
+      },
+      {
+        "decision_seq": 4,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": false,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 9,
+            "quality": 0.08,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 7,
+            "quality": 0.23,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 0,
+          "completed_tasks": 0,
+          "delivered": 7,
+          "dropped": 2,
+          "freshness": 0.9666666666666667,
+          "pending_messages": 0
+        },
+        "perception": {
+          "active_contacts": 0,
+          "cycle_ticks": 8,
+          "next_scan_tick": 8,
+          "total_archived": 0,
+          "total_discovered": 0
+        },
+        "tick": 1,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35.10294599191958,
+            "y": 29.15816300045186
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "offline",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 23.934255971436563,
+            "y": 37.08643304921121
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "degraded",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 37.07298213901767,
+            "y": 61.848257538358865
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 41.80764340671484,
+            "y": 18.931511112762486
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 29.12486855647364,
+            "y": 75.83615749733575
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 44.20791897174994,
+            "y": 81.84089218408621
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 43.984545845837275,
+            "y": 53.904358746778286
+          }
+        ]
+      },
+      {
+        "decision_seq": 5,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": false,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 9,
+            "quality": 0.08,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 7,
+            "quality": 0.23,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 0,
+          "completed_tasks": 0,
+          "delivered": 7,
+          "dropped": 3,
+          "freshness": 0.9333333333333335,
+          "pending_messages": 1
+        },
+        "perception": {
+          "active_contacts": 0,
+          "cycle_ticks": 8,
+          "next_scan_tick": 8,
+          "total_archived": 0,
+          "total_discovered": 0
+        },
+        "tick": 2,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 34.937990907090104,
+            "y": 29.189624209805597
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "offline",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 23.88475505688491,
+            "y": 36.89878809189782
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "degraded",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 37.10853920201802,
+            "y": 61.72124189364585
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 42.00041386405859,
+            "y": 18.88975116637143
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 29.03226264380552,
+            "y": 75.76524540627173
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 44.054624839675576,
+            "y": 81.69670277415085
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 43.87327647220166,
+            "y": 54.00170086926884
+          }
+        ]
+      },
+      {
+        "decision_seq": 7,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": false,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 9,
+            "quality": 0.08,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 7,
+            "quality": 0.23,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 0,
+          "completed_tasks": 1,
+          "delivered": 7,
+          "dropped": 3,
+          "freshness": 0.9000000000000001,
+          "pending_messages": 4
+        },
+        "perception": {
+          "active_contacts": 0,
+          "cycle_ticks": 8,
+          "next_scan_tick": 8,
+          "total_archived": 0,
+          "total_discovered": 0
+        },
+        "tick": 3,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35.12058657228165,
+            "y": 29.047811544778792
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "offline",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 23.878121129937746,
+            "y": 37.04864853110357
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "degraded",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 36.89255258312727,
+            "y": 61.551508710302635
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 41.851315764768486,
+            "y": 18.919181515145993
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 29.135997546434123,
+            "y": 75.96996831375661
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 44.086597993597415,
+            "y": 81.77849827665459
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 44.000290688471416,
+            "y": 53.948218902594924
+          }
+        ]
+      },
+      {
+        "decision_seq": 7,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": false,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 9,
+            "quality": 0.08,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 7,
+            "quality": 0.23,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 0,
+          "completed_tasks": 1,
+          "delivered": 7,
+          "dropped": 5,
+          "freshness": 0.8666666666666669,
+          "pending_messages": 4
+        },
+        "perception": {
+          "active_contacts": 0,
+          "cycle_ticks": 8,
+          "next_scan_tick": 8,
+          "total_archived": 0,
+          "total_discovered": 0
+        },
+        "tick": 4,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35.327033950586824,
+            "y": 29.123266828773243
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "offline",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 23.813029868317983,
+            "y": 37.02713871474573
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "degraded",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 36.87320652295073,
+            "y": 61.56288969200071
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 41.942461737559576,
+            "y": 18.94360927487022
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 29.09338980153096,
+            "y": 75.75049415173476
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 43.8963431342077,
+            "y": 81.98543472743523
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 44.030051867678026,
+            "y": 54.027152443698526
+          }
+        ]
+      },
+      {
+        "decision_seq": 7,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": false,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 9,
+            "quality": 0.08,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 7,
+            "quality": 0.23,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.93,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 0.375,
+          "completed_tasks": 1,
+          "delivered": 8,
+          "dropped": 5,
+          "freshness": 0.8428571428571427,
+          "pending_messages": 5
+        },
+        "perception": {
+          "active_contacts": 0,
+          "cycle_ticks": 8,
+          "next_scan_tick": 8,
+          "total_archived": 0,
+          "total_discovered": 0
+        },
+        "tick": 5,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35.32246028331163,
+            "y": 29.274621216952585
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "offline",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 23.917479691513073,
+            "y": 37.197175258486936
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "degraded",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 37.03381654944586,
+            "y": 61.52429194174856
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 41.886581632010966,
+            "y": 18.89175715802899
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 28.908889329570396,
+            "y": 75.60534318222079
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 43.88403708451323,
+            "y": 82.19761277419369
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 43.985494884706135,
+            "y": 54.21034572681678
+          }
+        ]
+      },
+      {
+        "decision_seq": 8,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 0.9,
+          "completed_tasks": 1,
+          "delivered": 10,
+          "dropped": 5,
+          "freshness": 0.838095238095238,
+          "pending_messages": 5
+        },
+        "perception": {
+          "active_contacts": 0,
+          "cycle_ticks": 8,
+          "next_scan_tick": 8,
+          "total_archived": 0,
+          "total_discovered": 0
+        },
+        "tick": 6,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35.474514241681604,
+            "y": 29.133846467563643
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 24.106244838042873,
+            "y": 36.99518051570883
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 37.03975215153077,
+            "y": 61.6205292975939
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 41.94151061195126,
+            "y": 18.97413726919125
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 28.82668097982532,
+            "y": 75.52426671482502
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 43.73819434898203,
+            "y": 82.39628673460656
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 43.87214073900262,
+            "y": 54.20630047702679
+          }
+        ]
+      },
+      {
+        "decision_seq": 8,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 0.9,
+          "completed_tasks": 1,
+          "delivered": 10,
+          "dropped": 5,
+          "freshness": 0.8047619047619047,
+          "pending_messages": 7
+        },
+        "perception": {
+          "active_contacts": 0,
+          "cycle_ticks": 8,
+          "next_scan_tick": 8,
+          "total_archived": 0,
+          "total_discovered": 0
+        },
+        "tick": 7,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35.2861363846079,
+            "y": 29.00207128564702
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 24.178440913476553,
+            "y": 37.047075730087776
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 36.85594565766815,
+            "y": 61.795472771558245
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 41.91817899935183,
+            "y": 18.7852010743367
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 29.015022233636746,
+            "y": 75.69816179531198
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 43.91060200134474,
+            "y": 82.28852779638675
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 43.975299761352595,
+            "y": 54.201988538757455
+          }
+        ]
+      },
+      {
+        "decision_seq": 8,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 1.3076923076923077,
+          "completed_tasks": 1,
+          "delivered": 13,
+          "dropped": 5,
+          "freshness": 0.8238095238095239,
+          "pending_messages": 7
+        },
+        "perception": {
+          "active_contacts": 0,
+          "cycle_ticks": 8,
+          "next_scan_tick": 16,
+          "total_archived": 0,
+          "total_discovered": 0
+        },
+        "tick": 8,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35.47571145119898,
+            "y": 28.787954965722033
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 24.203713085588912,
+            "y": 36.85738329658334
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 36.75470857700305,
+            "y": 61.97285797893663
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 41.853349072010126,
+            "y": 18.742061980315647
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 28.957905918429,
+            "y": 75.596324323267
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 43.718674427743956,
+            "y": 82.28793083415785
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 44.00329348686921,
+            "y": 54.07475914981817
+          }
+        ]
+      },
+      {
+        "decision_seq": 9,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 1.75,
+          "completed_tasks": 1,
+          "delivered": 16,
+          "dropped": 5,
+          "freshness": 0.8523809523809526,
+          "pending_messages": 6
+        },
+        "perception": {
+          "active_contacts": 0,
+          "cycle_ticks": 8,
+          "next_scan_tick": 16,
+          "total_archived": 0,
+          "total_discovered": 0
+        },
+        "tick": 9,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35.27700414020618,
+            "y": 28.748680472758437
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 24.053535842371534,
+            "y": 36.88127795789469
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 36.75685159926816,
+            "y": 61.861624589458614
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 41.79660973607716,
+            "y": 18.68662253193237
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 28.947612140390092,
+            "y": 75.37878262380107
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 43.64519970752507,
+            "y": 82.20173822587697
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 43.99928282651701,
+            "y": 54.025009735661506
+          }
+        ]
+      },
+      {
+        "decision_seq": 9,
+        "links": [
+          {
+            "enabled": true,
+            "from": "pla-j20",
+            "id": "link-pla-j20",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-kj700",
+            "id": "link-pla-kj700",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-055",
+            "id": "link-pla-055",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j36",
+            "id": "link-pla-j36",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-j50",
+            "id": "link-pla-j50",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-095",
+            "id": "link-pla-095",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          },
+          {
+            "enabled": true,
+            "from": "pla-004",
+            "id": "link-pla-004",
+            "latency_ticks": 2,
+            "quality": 0.94,
+            "to": "command"
+          }
+        ],
+        "metrics": {
+          "avg_latency_ticks": 1.7647058823529411,
+          "completed_tasks": 1,
+          "delivered": 17,
+          "dropped": 5,
+          "freshness": 0.8333333333333335,
+          "pending_messages": 7
+        },
+        "perception": {
+          "active_contacts": 1,
+          "cycle_ticks": 8,
+          "next_scan_tick": 16,
+          "total_archived": 0,
+          "total_discovered": 1
+        },
+        "tick": 10,
+        "units": [
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "ground",
+            "id": "command",
+            "model_label": "SYN-C2",
+            "name": "信息汇聚中心",
+            "readiness": 0.72,
+            "role": "合成信息汇聚 / 人工审阅",
+            "side": "blue",
+            "type_label": "合成指挥节点",
+            "x": 18,
+            "y": 48
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j20",
+            "model_label": "J-20 / 歼-20",
+            "name": "苍穹 01",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "战斗机符号",
+            "x": 35.360214818775454,
+            "y": 28.773862060183372
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-kj700",
+            "model_label": "KJ-700 / 空警-700",
+            "name": "概念节点 700",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念预警机符号",
+            "x": 24.098070173139448,
+            "y": 36.99393884483342
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": false,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-055",
+            "model_label": "Type 055 / 055 型",
+            "name": "海澜 01",
+            "readiness": 0.855,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "驱逐舰符号",
+            "x": 36.84937250827788,
+            "y": 61.682478487589066
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j36",
+            "model_label": "J-36 / 歼-36",
+            "name": "概念节点 36",
+            "readiness": 0.8999999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 41.772832389043636,
+            "y": 18.47642028736906
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "air",
+            "id": "pla-j50",
+            "model_label": "J-50 / 歼-50",
+            "name": "概念节点 50",
+            "readiness": 0.72,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航空符号",
+            "x": 28.98272366188937,
+            "y": 75.29453461912061
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "subsurface",
+            "id": "pla-095",
+            "model_label": "Type 095 / 095 型",
+            "name": "概念节点 095",
+            "readiness": 0.765,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念潜航符号",
+            "x": 43.46430630602213,
+            "y": 82.15638691763291
+          },
+          {
+            "affiliation": "PLA",
+            "conceptual": true,
+            "connection": "online",
+            "domain": "surface",
+            "id": "pla-004",
+            "model_label": "Type 004 / 004 型航母",
+            "name": "概念节点 004",
+            "readiness": 0.8099999999999999,
+            "role": "合成信息节点",
+            "side": "blue",
+            "type_label": "用户指定概念航母符号",
+            "x": 43.913319045869855,
+            "y": 54.11532842115158
+          },
+          {
+            "affiliation": "TW",
+            "conceptual": false,
+            "connection": "online",
+            "contact": {
+              "expires_tick": 56,
+              "first_seen_tick": 8,
+              "last_seen_tick": 8
+            },
+            "domain": "air",
+            "id": "contact-000001",
+            "model_label": "F-16V",
+            "name": "合成接触 001",
+            "readiness": 0.8586669351656299,
+            "role": "已接收合成接触报告；位置为最近观测值",
+            "side": "red",
+            "type_label": "战斗机符号",
+            "x": 66.43831295392836,
+            "y": 31.125740375221383
+          }
+        ]
+      }
+    ],
+    "decision_log": [
+      {
+        "evidence": [
+          {
+            "confidence": 0.6579474058553212,
+            "id": "obs-000003",
+            "note": "初始合成信息样本；不代表实际侦察能力",
+            "observed_tick": 0,
+            "received_tick": 0,
+            "source_id": "pla-055",
+            "unit_id": "pla-055"
+          }
+        ],
+        "kind": "created",
+        "proposal": {
+          "action": "restore_link",
+          "completed_tick": null,
+          "created_tick": 0,
+          "evidence_ids": [
+            "obs-000003"
+          ],
+          "expected_effect": "经批准后将该合成链路设为在线、质量 97%、延迟预算 1 tick。",
+          "id": "proposal-00001",
+          "outcome": null,
+          "rationale": "link-pla-055 的合成传输质量为 42%，影响信息到达与新鲜度。",
+          "source": "baseline",
+          "status": "pending",
+          "subject_id": "link-pla-055",
+          "title": "恢复合成信息链路",
+          "uncertainties": [
+            "链路恢复收益为预设演示效果，不能外推到真实装备。"
+          ]
+        },
+        "proposal_id": "proposal-00001",
+        "seq": 1,
+        "tick": 0
+      },
+      {
+        "evidence": [
+          {
+            "confidence": 0.6979889392250859,
+            "id": "obs-000002",
+            "note": "初始合成信息样本；不代表实际侦察能力",
+            "observed_tick": 0,
+            "received_tick": 0,
+            "source_id": "pla-kj700",
+            "unit_id": "pla-kj700"
+          }
+        ],
+        "kind": "created",
+        "proposal": {
+          "action": "review_data",
+          "completed_tick": null,
+          "created_tick": 0,
+          "evidence_ids": [
+            "obs-000002"
+          ],
+          "expected_effect": "经批准后核对所引证据，记录合成置信度变化。",
+          "id": "proposal-00002",
+          "outcome": null,
+          "rationale": "观察置信度与信息时效存在不确定性；先完善信息再作后续判断。",
+          "source": "baseline",
+          "status": "pending",
+          "subject_id": "pla-kj700",
+          "title": "核对合成观察证据",
+          "uncertainties": [
+            "模拟置信度不等于真实正确率；型号名称不赋予现实能力。"
+          ]
+        },
+        "proposal_id": "proposal-00002",
+        "seq": 2,
+        "tick": 0
+      },
+      {
+        "evidence": [
+          {
+            "confidence": 0.95,
+            "id": "obs-000008",
+            "note": "指挥端本地记录：合成链路处于离线；不是远端节点的新报告，不更新节点信息新鲜度",
+            "observed_tick": 0,
+            "received_tick": 0,
+            "source_id": "command",
+            "unit_id": "pla-kj700"
+          }
+        ],
+        "kind": "created",
+        "proposal": {
+          "action": "request_observation",
+          "completed_tick": null,
+          "created_tick": 0,
+          "evidence_ids": [
+            "obs-000008"
+          ],
+          "expected_effect": "人工批准后执行合成采样；恢复前不会送达，接收结果单独记载。",
+          "id": "proposal-00003",
+          "outcome": null,
+          "rationale": "本地链路状态显示离线；可批准一次合成补充采样，样本离线暂存并等待链路恢复。",
+          "source": "baseline",
+          "status": "pending",
+          "subject_id": "pla-kj700",
+          "title": "请求断链节点补充信息",
+          "uncertainties": [
+            "本地离线记录不证明远端节点当前状态；补报可能丢失或在采样 60 tick 后过期。"
+          ]
+        },
+        "proposal_id": "proposal-00003",
+        "seq": 3,
+        "tick": 0
+      },
+      {
+        "actor": "human",
+        "evidence": [
+          {
+            "confidence": 0.95,
+            "id": "obs-000008",
+            "note": "指挥端本地记录：合成链路处于离线；不是远端节点的新报告，不更新节点信息新鲜度",
+            "observed_tick": 0,
+            "received_tick": 0,
+            "source_id": "command",
+            "unit_id": "pla-kj700"
+          }
+        ],
+        "kind": "approved",
+        "note": "建议已批准；尚未执行",
+        "proposal_id": "proposal-00003",
+        "seq": 4,
+        "tick": 1
+      },
+      {
+        "kind": "executing",
+        "note": "已批准的信息管理动作开始执行",
+        "proposal_id": "proposal-00003",
+        "seq": 5,
+        "tick": 2
+      },
+      {
+        "kind": "buffered",
+        "note": "链路离线，补充样本留在本地暂存；尚未接收",
+        "proposal_id": "proposal-00003",
+        "report_id": "obs-000013",
+        "sampled_tick": 3,
+        "seq": 6,
+        "tick": 3
+      },
+      {
+        "kind": "completed",
+        "note": "反馈：补充样本采集动作已执行；发送、接收或失败另见报告事件，完成不表示送达",
+        "proposal_id": "proposal-00003",
+        "seq": 7,
+        "tick": 3
+      },
+      {
+        "kind": "sent",
+        "note": "补充样本已发送，预计 tick 9 到达；尚未接收",
+        "proposal_id": "proposal-00003",
+        "report_id": "obs-000013",
+        "sampled_tick": 3,
+        "seq": 8,
+        "tick": 6
+      },
+      {
+        "evidence": [
+          {
+            "confidence": 0.7328645925820394,
+            "id": "obs-000013",
+            "note": "经批准的信息补充样本；所有数值为合成数据",
+            "observed_tick": 3,
+            "received_tick": 9,
+            "source_id": "pla-kj700",
+            "unit_id": "pla-kj700"
+          }
+        ],
+        "kind": "received",
+        "note": "补充样本已实际接收；采样时间保持不变",
+        "proposal_id": "proposal-00003",
+        "report_id": "obs-000013",
+        "sampled_tick": 3,
+        "seq": 9,
+        "tick": 9
+      }
+    ],
+    "report_versions": [
+      {
+        "center_received_tick": 0,
+        "field_received_tick": 0,
+        "proposal_id": null,
+        "report_id": "obs-000001",
+        "sampled_tick": 0,
+        "source_id": "pla-j20",
+        "version": 1
+      },
+      {
+        "center_received_tick": 0,
+        "field_received_tick": 0,
+        "proposal_id": null,
+        "report_id": "obs-000002",
+        "sampled_tick": 0,
+        "source_id": "pla-kj700",
+        "version": 1
+      },
+      {
+        "center_received_tick": 0,
+        "field_received_tick": 0,
+        "proposal_id": null,
+        "report_id": "obs-000003",
+        "sampled_tick": 0,
+        "source_id": "pla-055",
+        "version": 1
+      },
+      {
+        "center_received_tick": 0,
+        "field_received_tick": 0,
+        "proposal_id": null,
+        "report_id": "obs-000004",
+        "sampled_tick": 0,
+        "source_id": "pla-j36",
+        "version": 1
+      },
+      {
+        "center_received_tick": 0,
+        "field_received_tick": 0,
+        "proposal_id": null,
+        "report_id": "obs-000005",
+        "sampled_tick": 0,
+        "source_id": "pla-j50",
+        "version": 1
+      },
+      {
+        "center_received_tick": 0,
+        "field_received_tick": 0,
+        "proposal_id": null,
+        "report_id": "obs-000006",
+        "sampled_tick": 0,
+        "source_id": "pla-095",
+        "version": 1
+      },
+      {
+        "center_received_tick": 0,
+        "field_received_tick": 0,
+        "proposal_id": null,
+        "report_id": "obs-000007",
+        "sampled_tick": 0,
+        "source_id": "pla-004",
+        "version": 1
+      },
+      {
+        "center_received_tick": 9,
+        "field_received_tick": 4,
+        "proposal_id": "proposal-00003",
+        "report_id": "obs-000013",
+        "sampled_tick": 3,
+        "source_id": "pla-kj700",
+        "version": 2
+      }
+    ]
+  }
+}

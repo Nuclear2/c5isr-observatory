@@ -15,7 +15,7 @@
   border-bottom: 1px solid var(--line);
 }
 .study-entry label { display: grid; gap: 3px; font-size: 11px; }
-.study-entry select, .study-entry button, .study-dialog button {
+.study-entry select, .study-entry button, .study-dialog button, .study-dialog select {
   font: inherit;
   color: #c8dede;
   background: #172e34;
@@ -48,6 +48,10 @@
 .study-mast svg { color: var(--teal); }
 .study-mast h1 { margin: 0; color: #e3eded; font-size: clamp(19px, 2vw, 27px); letter-spacing: .03em; }
 .study-context { margin: 6px 0 17px; color: #a0b4c0; overflow-wrap: anywhere; }
+.study-material-switch { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 0 0 12px; }
+.study-material-switch label { display: inline-flex; gap: 8px; align-items: center; }
+.study-material-switch small { color: #a4b9c4; }
+.study-material-switch [role="alert"] { color: #efae99; }
 .study-timeline {
   display: grid;
   grid-template-columns: auto auto minmax(48px, 1fr) auto auto;
@@ -78,6 +82,15 @@
 .study-finding { display: flex; align-items: baseline; gap: 12px; }
 .study-finding small { color: #9bb1bf; }
 .study-finding strong { color: var(--branch); }
+.study-basis { margin: 5px 0; color: #d9c099; }
+.study-reports > li.study-proof { background: #1a262b; border-inline-start: 3px solid var(--branch); }
+.study-coverage { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; list-style: none; padding: 0; margin: 8px 0 2px; }
+.study-coverage li { display: grid; align-content: start; padding: 5px 6px; border: 1px solid #3d5863; color: #cddde2; background: #102128; }
+.study-coverage li > span { font-size: 10px; color: #b1c6cc; }
+.study-coverage li > strong { font-size: 12px; }
+.study-coverage .study-slot-present { border-color: #42635f; color: #b2decf; }
+.study-coverage .study-slot-missing { border-color: #805d51; color: #eebea5; }
+.study-coverage .study-slot-uncovered { border-style: dashed; color: #d7c4a8; }
 .study-branch h3 { margin: 18px 0 6px; font-size: 13px; }
 .study-branch h3 small { margin-left: 4px; font-weight: 400; color: #a1b5c2; }
 .study-decision, .study-reports > li { margin: 6px 0; padding: 9px 11px; border-radius: 4px; border: 1px solid #2b404e; }

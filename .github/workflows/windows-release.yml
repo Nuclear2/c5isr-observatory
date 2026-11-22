@@ -127,7 +127,8 @@ jobs:
             if ($rule[0].desk_judgment.finding -ne 'conflict' -or ($rule[0].desk_judgment.evidence_ids -join ',') -ne $both) { throw 'Expected conflict between relay and supplement' }
             if ($human[0].desk_judgment.finding -ne 'gap' -or ($human[0].desk_judgment.read_ids -join ',') -ne $both -or ($human[0].desk_judgment.evidence_ids -join ',') -ne 'obs-000013') { throw 'Expected both reports read and only the supplement cited by the reviewer' }
             $studies = $archive.strategy_studies
-            if ((($studies.delivery | Sort-Object) -join ',') -ne 'delayed,lost,normal') { throw 'Expected three distinct strategy replays' }
+            $conditions = @($studies | ForEach-Object { "$($_.delivery)/$($_.material)" } | Sort-Object)
+            if (($conditions -join ',') -ne 'delayed/complete,lost/complete,normal/complete,normal/copy,normal/partial') { throw 'Expected the five transport and evidence conditions' }
             foreach ($study in $studies) {
               if ($study.case_id -ne $rule[0].proposal_id -or $study.fork_seq -ne $rule[0].seq -or $study.fork_tick -ne 12 -or $study.end_tick -ne 30 -or $study.frames.Count -ne 19) { throw 'Strategy replay does not cover the recorded T+12 conflict through T+30' }
               $score = $study.settlement.verify
@@ -135,12 +136,20 @@ jobs:
               $reply = @($final.reports | Where-Object kind -eq 'verification')
               if ($score.verification_requests -ne 1) { throw 'Expected one independent verification request' }
               if ($study.delivery -eq 'lost') {
-                if ($reply.Count -ne 0 -or $null -ne $score.decision_tick -or $score.unresolved -ne 1 -or $score.wait_ticks -ne 18) { throw 'Undelivered verification must stay unresolved through T+30' }
+                if ($reply.Count -ne 0 -or $null -ne $score.decision_tick -or $score.unresolved -ne 1 -or $score.wait_ticks -ne 18 -or $score.unresolved_reason -ne 'not_received') { throw 'Undelivered verification must stay unresolved through T+30' }
               } else {
                 $receiptTick = if ($study.delivery -eq 'normal') { 15 } else { 24 }
                 $readingTick = $receiptTick + 3
-                if ($reply.Count -ne 1 -or $reply[0].received_tick -ne $receiptTick -or $reply[0].read_tick -ne $readingTick -or $score.decision_tick -ne $readingTick -or $score.unresolved -ne 0 -or $score.wait_ticks -ne ($readingTick - 12)) { throw "Unexpected receipt, reading or settlement in $($study.delivery) replay" }
-                if (($final.decisions[-1].evidence_ids -join ',') -ne $reply[0].id) { throw 'Final judgment must cite the independent verification' }
+                if ($reply.Count -ne 1 -or $reply[0].received_tick -ne $receiptTick -or $reply[0].read_tick -ne $readingTick) { throw 'Unexpected receipt or reading time' }
+                $arrivalFrame = $study.frames | Where-Object tick -eq $receiptTick
+                $envelope = @($arrivalFrame.verify.reports | Where-Object kind -eq 'verification')
+                if ($envelope.Count -ne 1 -or $null -ne $envelope[0].read_tick -or $null -ne $envelope[0].root_id -or $null -ne $envelope[0].claim -or $null -ne $envelope[0].coverage) { throw 'The received envelope reveals evidence before reading' }
+                if ($study.material -eq 'complete') {
+                  if ($score.decision_tick -ne $readingTick -or $score.unresolved -ne 0 -or $score.wait_ticks -ne ($readingTick - 12) -or ($final.decisions[-1].evidence_ids -join ',') -ne $reply[0].id) { throw 'Full independent evidence must support a cited judgment' }
+                } else {
+                  $reason = if ($study.material -eq 'copy') { 'same_source' } else { 'partial_coverage' }
+                  if ($final.decisions[-1].action -ne 'insufficient' -or $final.decisions[-1].tick -ne 18 -or $score.unresolved_reason -ne $reason -or $score.unresolved -ne 1 -or $null -ne $score.decision_tick) { throw 'An insufficient reply was read but left the case unresolved' }
+                }
               }
             }
             $lab = Invoke-RestMethod "$base/examples/evidence-review.json" -TimeoutSec 5
@@ -200,8 +209,9 @@ jobs:
 
           1. 点一次 **下一历史帧** 到 T+9，切到 **审核席**。现场补报 \`obs-000013\` 已经送达，仍标为“待阅”。
           2. 再点三次到 T+12。转述与补报的说法发生冲突。展开 **人工判断** 可以看到审核席读过两份报告，实际引用了现场补报。
-          3. 在 **核验回报条件** 中选择 **常规送达**、**延迟送达** 或 **未送达**，点 **从此次冲突比较策略**。左右两席共用现场记录与故障时间线，可以逐步对照立即判断和请求独立核验各自读过、引用的报告。
-          4. 点 **到结算步**，再点 **揭示现场底稿并结算**，核对误判、未决、等待步数与核验次数。
+          3. 在 **核验回报条件** 选择 **常规送达**，再从 **核验材料** 选择 **完整独立记录**、**同源日志副本** 或 **只覆盖前三次采样**，点 **从此次冲突比较策略**。
+          4. 三种回信在 T+15 均显示已收件、待阅。推进到 T+18，保持在该步切换材料，对照原稿编号、四次采样的覆盖情况和判断实际引用的报告。
+          5. 点 **到结算步 → 揭示现场底稿并结算** 查看误判和未决原因。也可返回审核席选择 **延迟送达** 或 **未送达**，比较等待步数和核验请求次数。
 
           **ZIP SHA-256** \`$digest\`
           EOF

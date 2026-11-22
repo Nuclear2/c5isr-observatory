@@ -347,23 +347,55 @@ test('live desk reads actual outage reports and freezes the basis of each judgme
   const fork = { run_id: original.run_id, case_id: task.id, conflict_seq: conflict.seq };
   await post(studyPath, { ...fork, conflict_seq: desk(original).at(-1).seq, delivery: 'normal' }, 400);
   await post(studyPath, { ...fork, case_id: 'absent', delivery: 'normal' }, 400);
+  await post(studyPath, { ...fork, delivery: 'delayed', material: 'copy' }, 400);
+  await post(studyPath, { ...fork, delivery: 'lost', material: 'partial' }, 400);
   const studies = [];
-  for (const delivery of ['normal', 'delayed', 'lost']) {
-    const body = { ...fork, delivery };
+  const conditions = [['normal', 'complete'], ['normal', 'copy'], ['normal', 'partial'], ['delayed', 'complete'], ['lost', 'complete']];
+  for (const [delivery, material] of conditions) {
+    const body = { ...fork, delivery, material };
     const result = await post(studyPath, body);
     studies.push(result);
     assert.deepEqual(await post(studyPath, body), result);
+    assert.equal(result.schema_version, 2);
+    assert.equal(result.material, material);
     assert.deepEqual(result.frames[0].immediate.decisions[0].evidence_ids, [reportId]);
     assert.deepEqual(result.frames[0].verify.decisions[0].evidence_ids, both);
     assert.deepEqual(result.frames[0].immediate.reports, result.frames[0].verify.reports);
     assert.deepEqual(result.settlement.field_record, studies[0].settlement.field_record);
     assert.equal(result.settlement.immediate.wrong, 1);
     assert.equal(result.settlement.verify.verification_requests, 1);
-    const readAt = { normal: 18, delayed: 27, lost: null }[delivery];
-    assert.equal(result.settlement.verify.decision_tick, readAt);
-    assert.equal(result.settlement.verify.unresolved, Number(readAt === null));
-    assert.equal(result.settlement.verify.wait_ticks, (readAt ?? 30) - 12);
+    const concludeAt = material === 'complete' ? { normal: 18, delayed: 27, lost: null }[delivery] : null;
+    const score = result.settlement.verify;
+    assert.equal(score.decision_tick, concludeAt);
+    assert.equal(score.unresolved, Number(concludeAt === null));
+    assert.equal(score.wait_ticks, (concludeAt ?? 30) - 12);
+    const reason = delivery === 'lost' ? 'not_received' : { complete: null, copy: 'same_source', partial: 'partial_coverage' }[material];
+    assert.equal(score.unresolved_reason, reason);
   }
+  assert.deepEqual(await post(studyPath, { ...fork, delivery: 'normal' }), studies[0], 'older clients default to the full independent record');
+  for (const study of studies.filter(s => s.delivery === 'normal')) {
+    assert.deepEqual(study.link_events, studies[0].link_events);
+    assert.deepEqual(study.frames.map(f => f.immediate), studies[0].frames.map(f => f.immediate));
+    const at = tick => study.frames.find(f => f.tick === tick).verify;
+    assert.deepEqual(at(15), studies[0].frames.find(f => f.tick === 15).verify, 'unread envelopes reveal no material differences');
+    const unopened = at(15).reports[2];
+    assert.equal(unopened.received_tick, 15);
+    assert.equal(unopened.read_tick, null);
+    assert.equal(unopened.claim, null);
+    assert.equal(unopened.root_id, null);
+    assert.equal(unopened.coverage, undefined);
+    const read = at(18).reports[2];
+    const decision = at(18).decisions.at(-1);
+    const copy = study.material === 'copy';
+    assert.equal(read.read_tick, 18);
+    assert.equal(read.root_id === reportId, copy);
+    assert.deepEqual(read.coverage.map(row => row.slot), study.material === 'partial' ? [1, 2, 3] : [1, 2, 3, 4]);
+    assert.ok(read.coverage.every(row => row.present === (copy ? null : true)));
+    assert.equal(decision.action, study.material === 'complete' ? 'conclude' : 'insufficient');
+    assert.deepEqual(decision.read_ids, [...both, read.id]);
+    assert.deepEqual(decision.evidence_ids, copy ? [reportId, read.id] : [read.id]);
+  }
+  assert.equal(studies.at(-1).frames.at(-1).verify.reports.length, 2, 'no reply is invented at the deadline');
   assert.deepEqual(await get('/api/state'), original, 'the fork must not advance or mutate the live experiment');
   assert.doesNotMatch(JSON.stringify(original), /field_record|recorded_samples|verification-proposal|strategy_studies/);
   const recorded = parseArchive(JSON.stringify(await get('/api/export')));

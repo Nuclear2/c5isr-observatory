@@ -17,6 +17,17 @@ pub enum Delivery {
     Lost,
 }
 
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Material {
+    #[default]
+    Complete,
+    Copy,
+    Partial,
+}
+
+const SLOT_COUNT: usize = 4;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct FieldRecord {
     pub id: String,
@@ -25,6 +36,8 @@ pub struct FieldRecord {
     pub expected_samples: u8,
     pub recorded_samples: u8,
     pub finding: DeskClaim,
+    /// Ordered sampling opportunities inside this record, indexed 1 through 4 in reports.
+    pub slots: [bool; SLOT_COUNT],
 }
 
 fn stable_hash(key: &str) -> u64 {
@@ -50,13 +63,21 @@ fn recorded_count(seed: u64, source: &str, tick: u64) -> u8 {
 impl FieldRecord {
     fn recover(seed: u64, source: &str, tick: u64) -> Self {
         let recorded_samples = recorded_count(seed, source, tick);
+        // Preserve the original sample count. Choose its positions with a separate
+        // draw so changing the review policy or material cannot move a missing sample.
+        let masks: Vec<u8> = (0u8..16)
+            .filter(|mask| mask.count_ones() == u32::from(recorded_samples))
+            .collect();
+        let index = (draw(seed, source, tick, "sample-positions") * masks.len() as f64) as usize;
+        let slots = std::array::from_fn(|slot| masks[index] & (1 << slot) != 0);
         Self {
             id: format!("field-{source}-{tick}"),
             source_id: source.into(),
             sampled_tick: tick,
-            expected_samples: 4,
+            expected_samples: SLOT_COUNT as u8,
             recorded_samples,
-            finding: if recorded_samples == 4 {
+            slots,
+            finding: if slots.iter().all(|present| *present) {
                 DeskClaim::Continuous
             } else {
                 DeskClaim::Gap
@@ -86,16 +107,82 @@ pub struct StudyLink {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+pub struct SlotObservation {
+    pub slot: u8,
+    // An aggregate log can address this slot without reporting its individual result.
+    pub present: Option<bool>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct StudyReport {
     pub id: String,
     pub kind: &'static str,
     pub source_id: String,
-    pub root_id: String,
+    pub root_id: Option<String>,
     pub root_sampled_tick: u64,
     pub sampled_tick: u64,
     pub received_tick: u64,
     pub read_tick: Option<u64>,
     pub claim: Option<DeskClaim>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub coverage: Option<Vec<SlotObservation>>,
+}
+
+// Content held at the source. Only its projection on receipt/read is public.
+struct VerificationDocument {
+    source_id: String,
+    root_id: String,
+    claim: Option<DeskClaim>,
+    coverage: Vec<SlotObservation>,
+}
+
+impl VerificationDocument {
+    fn collect(material: Material, supplement: &StudyReport, field: &FieldRecord) -> Self {
+        if material == Material::Copy {
+            // A second envelope copies the original window-level statement, including any
+            // error. The underlying log supplies no reading for an individual slot.
+            return Self {
+                source_id: supplement.source_id.clone(),
+                root_id: supplement.id.clone(),
+                claim: supplement.claim,
+                coverage: (1..=SLOT_COUNT as u8)
+                    .map(|slot| SlotObservation {
+                        slot,
+                        present: None,
+                    })
+                    .collect(),
+            };
+        }
+        let count = if material == Material::Partial {
+            3
+        } else {
+            SLOT_COUNT
+        };
+        let coverage: Vec<_> = field.slots[..count]
+            .iter()
+            .enumerate()
+            .map(|(i, present)| SlotObservation {
+                slot: (i + 1) as u8,
+                present: Some(*present),
+            })
+            .collect();
+        let claim = if coverage.iter().any(|s| s.present == Some(false)) {
+            Some(DeskClaim::Gap)
+        } else if coverage.len() == SLOT_COUNT {
+            Some(DeskClaim::Continuous)
+        } else {
+            None
+        };
+        Self {
+            source_id: format!("counter-{}", supplement.source_id),
+            root_id: format!(
+                "counter-log-{}-{}",
+                supplement.source_id, supplement.sampled_tick
+            ),
+            claim,
+            coverage,
+        }
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -127,6 +214,15 @@ pub struct Score {
     pub wait_ticks: u64,
     pub verification_requests: u8,
     pub decision_tick: Option<u64>,
+    pub unresolved_reason: Option<UnresolvedReason>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum UnresolvedReason {
+    NotReceived,
+    SameSource,
+    PartialCoverage,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
@@ -147,12 +243,47 @@ pub struct StrategyStudy {
     pub fork_seq: u64,
     pub end_tick: u64,
     pub delivery: Delivery,
+    pub material: Material,
     pub link_events: Vec<StudyLink>,
     pub frames: Vec<StudyFrame>,
     pub settlement: Settlement,
 }
 
 impl BranchFrame {
+    fn read_verification(&mut self, tick: u64, document: &VerificationDocument) {
+        let [_, supplement, reply] = self.reports.as_mut_slice() else {
+            return;
+        };
+        if reply.read_tick.is_some()
+            || reply.received_tick >= tick
+            || !tick.is_multiple_of(READ_INTERVAL)
+        {
+            return;
+        }
+        reply.read_tick = Some(tick);
+        reply.source_id.clone_from(&document.source_id);
+        reply.root_id = Some(document.root_id.clone());
+        reply.coverage = Some(document.coverage.clone());
+        reply.claim = document.claim;
+        let shared_root = reply.root_id == supplement.root_id;
+        let finding = if shared_root { None } else { reply.claim };
+        let evidence = if shared_root {
+            vec![supplement.id.clone(), reply.id.clone()]
+        } else {
+            vec![reply.id.clone()]
+        };
+        self.decide(
+            tick,
+            if finding.is_some() {
+                "conclude"
+            } else {
+                "insufficient"
+            },
+            finding,
+            evidence,
+        );
+    }
+
     fn decide(
         &mut self,
         tick: u64,
@@ -177,6 +308,17 @@ impl BranchFrame {
     fn score(&self, field: &FieldRecord, fork: u64, end: u64) -> Score {
         let conclusion = self.decisions.iter().find(|d| d.action == "conclude");
         let decision_tick = conclusion.map(|d| d.tick);
+        let unresolved_reason = if conclusion.is_some() {
+            None
+        } else {
+            Some(match self.reports.get(2) {
+                None => UnresolvedReason::NotReceived,
+                Some(reply) if reply.root_id == self.reports[1].root_id => {
+                    UnresolvedReason::SameSource
+                }
+                Some(_) => UnresolvedReason::PartialCoverage,
+            })
+        };
         Score {
             wrong: u8::from(conclusion.is_some_and(|d| d.finding != Some(field.finding))),
             unresolved: u8::from(conclusion.is_none()),
@@ -187,6 +329,7 @@ impl BranchFrame {
                 .filter(|d| d.action == "request_verification")
                 .count() as u8,
             decision_tick,
+            unresolved_reason,
         }
     }
 }
@@ -228,12 +371,13 @@ fn read_prefix(
                 DeskReportKind::Supplement => "supplement",
             },
             source_id: r.source_id.clone(),
-            root_id: r.root_id.clone(),
+            root_id: Some(r.root_id.clone()),
             root_sampled_tick: r.root_sampled_tick,
             sampled_tick: r.sampled_tick,
             received_tick: r.received_tick,
             read_tick: Some(event.tick),
             claim: r.claim,
+            coverage: None,
         });
     }
     let [relay, supplement] = reports.as_slice() else {
@@ -242,6 +386,7 @@ fn read_prefix(
     let ids = [&relay.id, &supplement.id];
     if relay.kind != "relay"
         || supplement.kind != "supplement"
+        || supplement.root_id.as_deref() != Some(supplement.id.as_str())
         || relay.claim.is_none()
         || supplement.claim.is_none()
         || relay.claim == supplement.claim
@@ -305,16 +450,14 @@ fn check_outage(
     Ok(())
 }
 
-/// Carry the recorded on/off transitions through the exact fork cursor, then
-/// extend one external link tape used by both policies. A request cannot change it.
-fn link_tape(
+/// Capture source-link switches through the exact rule-event cursor.
+fn recorded_links(
     snapshot: &Snapshot,
     case_id: &str,
     supplement: &StudyReport,
     tick: u64,
     seq: u64,
-    delivery: Delivery,
-) -> Result<(bool, Vec<StudyLink>), String> {
+) -> Result<Vec<StudyLink>, String> {
     let frame = snapshot
         .history
         .iter()
@@ -325,11 +468,6 @@ fn link_tape(
         .iter()
         .find(|l| l.from == supplement.source_id)
         .ok_or("分岔帧没有该来源的链路")?;
-    let at_fork = frame
-        .link_changes
-        .iter()
-        .find(|e| e.link_id == link.id && e.seq > seq)
-        .map_or(link.enabled, |e| e.before.enabled);
     let mut tape = Vec::new();
     for f in snapshot.history.iter().take_while(|f| f.tick <= tick) {
         for e in &f.link_changes {
@@ -344,6 +482,10 @@ fn link_tape(
         }
     }
     check_outage(snapshot, case_id, supplement, tick, seq, &tape)?;
+    Ok(tape)
+}
+
+fn schedule_link(tape: &mut Vec<StudyLink>, tick: u64, at_fork: bool, delivery: Delivery) {
     let mut schedule = |offset, enabled| {
         tape.push(StudyLink {
             tick: tick + offset,
@@ -361,7 +503,37 @@ fn link_tape(
     if delivery == Delivery::Delayed {
         schedule(11, true);
     }
-    Ok((at_fork, tape))
+}
+
+struct RecordedFork {
+    case_id: String,
+    seq: u64,
+    tick: u64,
+    reports: Vec<StudyReport>,
+    field: FieldRecord,
+    recorded_links: Vec<StudyLink>,
+}
+
+impl StrategyStudy {
+    /// Reuse the original conflict even when part of its history has since rolled out.
+    /// Neither the descendant decisions nor the future scenario switches become inputs.
+    pub fn with_conditions(&self, delivery: Delivery, material: Material) -> Result<Self, String> {
+        let first = self.frames.first().ok_or("分岔原帧未保存")?;
+        RecordedFork {
+            case_id: self.case_id.clone(),
+            seq: self.fork_seq,
+            tick: self.fork_tick,
+            reports: first.immediate.reports.clone(),
+            field: self.settlement.field_record.clone(),
+            recorded_links: self
+                .link_events
+                .iter()
+                .filter(|e| e.origin == "recorded")
+                .cloned()
+                .collect(),
+        }
+        .run(delivery, material)
+    }
 }
 
 /// An explicitly chosen counterfactual study. Never changes the supplied live engine.
@@ -370,100 +542,129 @@ pub fn run_study(
     case_id: &str,
     fork_seq: u64,
     delivery: Delivery,
+    material: Material,
 ) -> Result<StrategyStudy, String> {
-    let (fork, reports) = read_prefix(snapshot, case_id, fork_seq)?;
-    let end = fork.checked_add(STUDY_TICKS).ok_or("分岔时间超出范围")?;
-    let source = reports[1].source_id.clone();
-    let sampled_tick = reports[1].sampled_tick;
-    let field = FieldRecord::recover(snapshot.seed, &source, sampled_tick);
-    let (mut enabled, link_events) =
-        link_tape(snapshot, case_id, &reports[1], fork, fork_seq, delivery)?;
-    let mut immediate = BranchFrame {
+    let (tick, reports) = read_prefix(snapshot, case_id, fork_seq)?;
+    let supplement = &reports[1];
+    RecordedFork {
+        case_id: case_id.into(),
+        seq: fork_seq,
+        tick,
+        recorded_links: recorded_links(snapshot, case_id, supplement, tick, fork_seq)?,
+        field: FieldRecord::recover(
+            snapshot.seed,
+            &supplement.source_id,
+            supplement.sampled_tick,
+        ),
         reports,
-        decisions: vec![],
-    };
-    let mut verify = immediate.clone();
-    let supplement = &immediate.reports[1];
-    immediate.decide(
-        fork,
-        "conclude",
-        supplement.claim,
-        vec![supplement.id.clone()],
-    );
-    verify.decide(
-        fork,
-        "request_verification",
-        None,
-        verify.reports.iter().map(|r| r.id.clone()).collect(),
-    );
+    }
+    .run(delivery, material)
+}
 
-    let mut frames = Vec::new();
-    let mut request_arrived = false;
-    let mut transit_steps = 0;
-    for tick in fork..=end {
-        if let Some(change) = link_events
-            .iter()
-            .find(|e| e.origin == "scenario" && e.tick == tick)
-        {
-            enabled = change.enabled;
+impl RecordedFork {
+    fn run(self, delivery: Delivery, material: Material) -> Result<StrategyStudy, String> {
+        if delivery != Delivery::Normal && material != Material::Complete {
+            return Err("材料对照使用常规送达，以保持相同的收件与阅读时刻".into());
         }
-        if tick > fork && verify.reports.len() == 2 {
-            if !enabled {
-                transit_steps = 0;
-            } else if !request_arrived {
-                request_arrived = true;
-            } else {
-                transit_steps += 1;
-                if transit_steps == 2 {
-                    verify.reports.push(StudyReport {
-                        id: format!("verification-{case_id}"),
-                        kind: "verification",
-                        source_id: format!("counter-{source}"),
-                        root_id: field.id.clone(),
-                        root_sampled_tick: sampled_tick,
-                        sampled_tick,
-                        received_tick: tick,
-                        read_tick: None,
-                        claim: None,
-                    });
+        let Self {
+            case_id,
+            seq: fork_seq,
+            tick: fork,
+            reports,
+            field,
+            recorded_links: mut link_events,
+        } = self;
+        let end = fork.checked_add(STUDY_TICKS).ok_or("分岔时间超出范围")?;
+        let [_, original] = reports.as_slice() else {
+            return Err("分岔时的两份原件未完整保存".into());
+        };
+        let sampled_tick = original.sampled_tick;
+        let source = original.source_id.clone();
+        let document = VerificationDocument::collect(material, original, &field);
+        let mut enabled = link_events
+            .last()
+            .ok_or("分岔时的来源链路开关未保存")?
+            .enabled;
+        schedule_link(&mut link_events, fork, enabled, delivery);
+        let mut immediate = BranchFrame {
+            reports,
+            decisions: vec![],
+        };
+        let mut verify = immediate.clone();
+        let supplement = &immediate.reports[1];
+        immediate.decide(
+            fork,
+            "conclude",
+            supplement.claim,
+            vec![supplement.id.clone()],
+        );
+        verify.decide(
+            fork,
+            "request_verification",
+            None,
+            verify.reports.iter().map(|r| r.id.clone()).collect(),
+        );
+
+        let mut frames = Vec::new();
+        let mut request_arrived = false;
+        let mut transit_steps = 0;
+        for tick in fork..=end {
+            if let Some(change) = link_events
+                .iter()
+                .find(|e| e.origin == "scenario" && e.tick == tick)
+            {
+                enabled = change.enabled;
+            }
+            if tick > fork && verify.reports.len() == 2 {
+                if !enabled {
+                    transit_steps = 0;
+                } else if !request_arrived {
+                    request_arrived = true;
+                } else {
+                    transit_steps += 1;
+                    if transit_steps == 2 {
+                        verify.reports.push(StudyReport {
+                            id: format!("verification-{case_id}"),
+                            kind: "verification",
+                            source_id: format!("verification-desk-{source}"),
+                            root_id: None,
+                            root_sampled_tick: sampled_tick,
+                            sampled_tick,
+                            received_tick: tick,
+                            read_tick: None,
+                            claim: None,
+                            coverage: None,
+                        });
+                    }
                 }
             }
+            verify.read_verification(tick, &document);
+            frames.push(StudyFrame {
+                tick,
+                immediate: immediate.clone(),
+                verify: verify.clone(),
+            });
         }
-        if let Some(reply) = verify.reports.get_mut(2)
-            && reply.read_tick.is_none()
-            && reply.received_tick < tick
-            && tick.is_multiple_of(READ_INTERVAL)
-        {
-            reply.read_tick = Some(tick);
-            reply.claim = Some(field.finding);
-            let evidence = vec![reply.id.clone()];
-            let finding = reply.claim;
-            verify.decide(tick, "conclude", finding, evidence);
-        }
-        frames.push(StudyFrame {
-            tick,
-            immediate: immediate.clone(),
-            verify: verify.clone(),
-        });
+        Ok(StrategyStudy {
+            kind: "c5isr-strategy-study",
+            schema_version: 2,
+            case_id,
+            source_id: source,
+            sampled_tick,
+            fork_tick: fork,
+            fork_seq,
+            end_tick: end,
+            delivery,
+            material,
+            link_events,
+            frames,
+            settlement: Settlement {
+                immediate: immediate.score(&field, fork, end),
+                verify: verify.score(&field, fork, end),
+                field_record: field,
+            },
+        })
     }
-    Ok(StrategyStudy {
-        kind: "c5isr-strategy-study",
-        schema_version: 1,
-        case_id: case_id.into(),
-        source_id: source,
-        sampled_tick,
-        fork_tick: fork,
-        fork_seq,
-        end_tick: end,
-        delivery,
-        link_events,
-        frames,
-        settlement: Settlement {
-            immediate: immediate.score(&field, fork, end),
-            verify: verify.score(&field, fork, end),
-            field_record: field,
-        },
-    })
 }
 
 #[cfg(test)]
@@ -512,7 +713,7 @@ mod tests {
         let (engine, case) = replay_outage(20261022);
         let snapshot = engine.current();
         let seq = conflict_seq(snapshot, &case).unwrap();
-        let normal = run_study(snapshot, &case, seq, Delivery::Normal).unwrap();
+        let normal = run_study(snapshot, &case, seq, Delivery::Normal, Material::Complete).unwrap();
         assert_eq!((normal.fork_tick, normal.end_tick), (12, 30));
         assert_eq!(
             (
@@ -528,11 +729,11 @@ mod tests {
         let reports = &normal.frames[0].immediate.reports;
         assert_eq!(
             (
-                reports[0].root_id.as_str(),
+                reports[0].root_id.as_deref(),
                 reports[0].read_tick,
                 reports[0].claim
             ),
-            ("obs-000002", Some(6), Some(DeskClaim::Continuous))
+            (Some("obs-000002"), Some(6), Some(DeskClaim::Continuous))
         );
         assert_eq!(
             (
@@ -549,7 +750,7 @@ mod tests {
             (Delivery::Delayed, Some(24), Some(27)),
             (Delivery::Lost, None, None),
         ] {
-            let study = run_study(snapshot, &case, seq, delivery).unwrap();
+            let study = run_study(snapshot, &case, seq, delivery, Material::Complete).unwrap();
             assert_eq!(
                 study.settlement.field_record,
                 normal.settlement.field_record
@@ -584,7 +785,11 @@ mod tests {
                 assert_eq!(frame.verify.decisions.len(), 1 + usize::from(opened));
                 if visible {
                     let reply = &frame.verify.reports[2];
-                    assert_eq!(reply.root_id, normal.settlement.field_record.id);
+                    assert_eq!(
+                        reply.root_id.as_deref(),
+                        opened.then_some("counter-log-pla-kj700-3")
+                    );
+                    assert_eq!(reply.coverage.is_some(), opened);
                     assert_eq!(Some(reply.received_tick), received);
                     assert_eq!(reply.read_tick, read.filter(|_| opened));
                     assert_eq!(reply.claim, opened.then_some(DeskClaim::Continuous));
@@ -605,7 +810,8 @@ mod tests {
                     unresolved: 0,
                     wait_ticks: 0,
                     verification_requests: 0,
-                    decision_tick: Some(12)
+                    decision_tick: Some(12),
+                    unresolved_reason: None,
                 }
             );
             assert_eq!(
@@ -615,29 +821,240 @@ mod tests {
                     unresolved: u8::from(read.is_none()),
                     wait_ticks: read.unwrap_or(30) - 12,
                     verification_requests: 1,
-                    decision_tick: read
+                    decision_tick: read,
+                    unresolved_reason: read.is_none().then_some(UnresolvedReason::NotReceived),
                 }
             );
         }
     }
 
     #[test]
+    fn same_timing_and_record_only_the_opened_documents_differ() {
+        let (engine, case) = replay_outage(20261022);
+        let snapshot = engine.current();
+        let seq = conflict_seq(snapshot, &case).unwrap();
+        let run = |material| run_study(snapshot, &case, seq, Delivery::Normal, material).unwrap();
+        let complete = run(Material::Complete);
+        let copy = run(Material::Copy);
+        let partial = run(Material::Partial);
+        assert_eq!(complete.settlement.field_record.slots, [true; 4]);
+        for study in [&complete, &copy, &partial] {
+            assert_eq!(study.schema_version, 2);
+            assert_eq!(study.link_events, complete.link_events);
+            assert_eq!(
+                study.settlement.field_record,
+                complete.settlement.field_record
+            );
+            assert_eq!(study.settlement.immediate, complete.settlement.immediate);
+            for (frame, baseline) in study.frames.iter().zip(&complete.frames) {
+                assert_eq!(frame.immediate, baseline.immediate);
+                if frame.tick < 18 {
+                    assert_eq!(frame.verify, baseline.verify);
+                }
+            }
+            let received = &study.frames[3].verify;
+            let envelope = &received.reports[2];
+            assert_eq!((envelope.received_tick, envelope.read_tick), (15, None));
+            assert_eq!(envelope.source_id, "verification-desk-pla-kj700");
+            assert_eq!(envelope.root_id, None);
+            assert_eq!(envelope.coverage, None);
+            assert_eq!(envelope.claim, None);
+            assert_eq!(received.decisions.len(), 1);
+            let read = &study.frames[6].verify;
+            let reply = &read.reports[2];
+            assert_eq!(reply.read_tick, Some(18));
+            assert_eq!(
+                read.decisions[1].read_ids,
+                read.reports
+                    .iter()
+                    .map(|r| r.id.clone())
+                    .collect::<Vec<_>>()
+            );
+            // A subsequent frame retains the exact record of the first reading.
+            assert_eq!(study.frames.last().unwrap().verify, *read);
+        }
+        let complete_reply = &complete.frames[6].verify.reports[2];
+        let copy_desk = &copy.frames[6].verify;
+        let supplement = &copy_desk.reports[1];
+        let copied = &copy_desk.reports[2];
+        assert_ne!(copied.id, supplement.id);
+        assert_eq!(
+            (&copied.source_id, &copied.root_id, copied.claim),
+            (
+                &supplement.source_id,
+                &supplement.root_id,
+                Some(DeskClaim::Gap)
+            )
+        );
+        let copy_coverage = copied.coverage.as_ref().unwrap();
+        assert_eq!(copy_coverage.len(), 4);
+        assert!(
+            copy_coverage
+                .iter()
+                .enumerate()
+                .all(|(i, s)| s.slot as usize == i + 1 && s.present.is_none())
+        );
+        let held = &copy_desk.decisions[1];
+        assert_eq!((held.action, held.finding), ("insufficient", None));
+        assert_eq!(
+            held.evidence_ids,
+            [supplement.id.clone(), copied.id.clone()]
+        );
+        let partial_desk = &partial.frames[6].verify;
+        let subset = &partial_desk.reports[2];
+        assert_eq!(subset.root_id, complete_reply.root_id);
+        assert_ne!(subset.root_id, supplement.root_id);
+        assert_eq!(
+            subset.coverage.as_deref().unwrap(),
+            &complete_reply.coverage.as_deref().unwrap()[..3]
+        );
+        assert!(
+            subset
+                .coverage
+                .as_deref()
+                .unwrap()
+                .iter()
+                .all(|slot| slot.present == Some(true))
+        );
+        assert_eq!(subset.claim, None);
+        assert_eq!(partial_desk.decisions[1].action, "insufficient");
+        assert_eq!(partial_desk.decisions[1].evidence_ids, [subset.id.clone()]);
+        for (score, reason) in [
+            (&copy.settlement.verify, UnresolvedReason::SameSource),
+            (
+                &partial.settlement.verify,
+                UnresolvedReason::PartialCoverage,
+            ),
+        ] {
+            assert_eq!(score.unresolved_reason, Some(reason));
+            assert_eq!(
+                (
+                    score.wrong,
+                    score.unresolved,
+                    score.decision_tick,
+                    score.wait_ticks,
+                    score.verification_requests
+                ),
+                (0, 1, None, 18, 1)
+            );
+        }
+        for material in [Material::Copy, Material::Partial] {
+            for delivery in [Delivery::Delayed, Delivery::Lost] {
+                assert!(run_study(snapshot, &case, seq, delivery, material).is_err());
+            }
+        }
+    }
+
+    #[test]
+    fn partial_observations_can_prove_a_gap_inside_their_own_coverage() {
+        let (engine, case) = replay_outage(20261026);
+        let snapshot = engine.current();
+        let seq = conflict_seq(snapshot, &case).unwrap();
+        let study = run_study(snapshot, &case, seq, Delivery::Normal, Material::Partial).unwrap();
+        let field = &study.settlement.field_record;
+        assert_eq!(field.recorded_samples, 2);
+        assert_eq!(field.slots.iter().filter(|present| **present).count(), 2);
+        let desk = &study.frames[6].verify;
+        let reply = &desk.reports[2];
+        assert_eq!(reply.claim, Some(DeskClaim::Gap));
+        let observed = reply.coverage.as_ref().unwrap();
+        assert!(observed.iter().any(|s| s.present == Some(false)));
+        assert_eq!(observed.len(), 3);
+        for s in observed {
+            assert_eq!(s.present, Some(field.slots[usize::from(s.slot) - 1]));
+        }
+        assert_eq!(desk.decisions[1].action, "conclude");
+        assert_eq!(desk.decisions[1].finding, Some(DeskClaim::Gap));
+        assert_eq!(desk.decisions[1].evidence_ids, [reply.id.clone()]);
+        assert_eq!(study.settlement.verify.unresolved_reason, None);
+        assert_eq!(study.settlement.verify.decision_tick, Some(18));
+    }
+
+    #[test]
+    fn two_different_fourth_samples_produce_identical_first_three_observations() {
+        let (engine, case) = replay_outage(20261022);
+        let snapshot = engine.current();
+        let seq = conflict_seq(snapshot, &case).unwrap();
+        let (_, reports) = read_prefix(snapshot, &case, seq).unwrap();
+        let supplement = &reports[1];
+        let full = FieldRecord::recover(
+            snapshot.seed,
+            &supplement.source_id,
+            supplement.sampled_tick,
+        );
+        let fourth_missing = FieldRecord {
+            slots: [true, true, true, false],
+            recorded_samples: 3,
+            finding: DeskClaim::Gap,
+            ..full.clone()
+        };
+        let first = VerificationDocument::collect(Material::Partial, supplement, &full);
+        let second = VerificationDocument::collect(Material::Partial, supplement, &fourth_missing);
+        assert_eq!(first.coverage, second.coverage);
+        assert_eq!((first.claim, second.claim), (None, None));
+        let complete =
+            VerificationDocument::collect(Material::Complete, supplement, &fourth_missing);
+        assert_eq!(complete.claim, Some(DeskClaim::Gap));
+    }
+
+    #[test]
     fn rejects_non_conflict_and_preserves_exact_same_tick_cutoff() {
         let (mut engine, case) = replay_outage(20261022);
         let seq = conflict_seq(engine.current(), &case).unwrap();
-        let run = run_study(engine.current(), &case, seq, Delivery::Normal).unwrap();
-        assert!(run_study(engine.current(), &case, seq - 1, Delivery::Normal).is_err());
-        assert!(run_study(engine.current(), "other", seq, Delivery::Normal).is_err());
+        let run = run_study(
+            engine.current(),
+            &case,
+            seq,
+            Delivery::Normal,
+            Material::Complete,
+        )
+        .unwrap();
+        assert!(
+            run_study(
+                engine.current(),
+                &case,
+                seq - 1,
+                Delivery::Normal,
+                Material::Complete
+            )
+            .is_err()
+        );
+        assert!(
+            run_study(
+                engine.current(),
+                "other",
+                seq,
+                Delivery::Normal,
+                Material::Complete
+            )
+            .is_err()
+        );
         let report = run.frames[0].immediate.reports[1].id.clone();
         engine
             .record_desk_judgment(&case, seq - 1, &[report])
             .unwrap();
-        assert!(run_study(engine.current(), &case, seq + 1, Delivery::Normal).is_err());
+        assert!(
+            run_study(
+                engine.current(),
+                &case,
+                seq + 1,
+                Delivery::Normal,
+                Material::Complete
+            )
+            .is_err()
+        );
         engine.inject("link_loss").unwrap();
         engine.inject("recover").unwrap();
         assert_eq!(
             run,
-            run_study(engine.current(), &case, seq, Delivery::Normal).unwrap()
+            run_study(
+                engine.current(),
+                &case,
+                seq,
+                Delivery::Normal,
+                Material::Complete
+            )
+            .unwrap()
         );
         let (agree, id) = replay_outage(20261023);
         assert_eq!(conflict_seq(agree.current(), &id), None);
@@ -647,29 +1064,83 @@ mod tests {
     fn fork_needs_its_actual_outage_even_while_the_conflict_frame_is_retained() {
         let (mut engine, case) = replay_outage(20261022);
         let seq = conflict_seq(engine.current(), &case).unwrap();
-        let original = run_study(engine.current(), &case, seq, Delivery::Normal).unwrap();
+        let original = run_study(
+            engine.current(),
+            &case,
+            seq,
+            Delivery::Normal,
+            Material::Complete,
+        )
+        .unwrap();
+        let delayed = run_study(
+            engine.current(),
+            &case,
+            seq,
+            Delivery::Delayed,
+            Material::Complete,
+        )
+        .unwrap();
+        let partial = run_study(
+            engine.current(),
+            &case,
+            seq,
+            Delivery::Normal,
+            Material::Partial,
+        )
+        .unwrap();
         let mut incomplete = engine.snapshot();
         incomplete.history.retain(|f| f.tick != 5);
         assert!(
-            run_study(&incomplete, &case, seq, Delivery::Normal)
-                .unwrap_err()
-                .contains("帧不完整")
+            run_study(
+                &incomplete,
+                &case,
+                seq,
+                Delivery::Normal,
+                Material::Complete
+            )
+            .unwrap_err()
+            .contains("帧不完整")
         );
         while engine.current().tick < crate::MAX_HISTORY as u64 - 1 {
             engine.step();
         }
         assert_eq!(engine.current().history[0].tick, 0);
         assert_eq!(
-            run_study(engine.current(), &case, seq, Delivery::Normal).unwrap(),
+            run_study(
+                engine.current(),
+                &case,
+                seq,
+                Delivery::Normal,
+                Material::Complete
+            )
+            .unwrap(),
             original
         );
         engine.step();
         assert_eq!(engine.current().history[0].tick, 1);
+        assert_eq!(
+            delayed
+                .with_conditions(Delivery::Normal, Material::Partial)
+                .unwrap(),
+            partial
+        );
+        assert_eq!(
+            partial
+                .with_conditions(Delivery::Delayed, Material::Complete)
+                .unwrap(),
+            delayed
+        );
         assert_eq!(conflict_seq(engine.current(), &case), Some(seq));
         assert!(
-            run_study(engine.current(), &case, seq, Delivery::Delayed)
-                .unwrap_err()
-                .contains("断链变更已超出记录窗口")
+            run_study(
+                engine.current(),
+                &case,
+                seq,
+                Delivery::Delayed,
+                Material::Complete
+            )
+            .unwrap_err()
+            .contains("断链变更已超出记录窗口")
         );
         assert!(
             original
@@ -683,7 +1154,14 @@ mod tests {
     fn a_different_real_fork_can_have_missing_samples_and_a_correct_immediate_conclusion() {
         let (engine, case) = replay_outage(20261026);
         let seq = conflict_seq(engine.current(), &case).unwrap();
-        let study = run_study(engine.current(), &case, seq, Delivery::Lost).unwrap();
+        let study = run_study(
+            engine.current(),
+            &case,
+            seq,
+            Delivery::Lost,
+            Material::Complete,
+        )
+        .unwrap();
         let field = study.settlement.field_record;
         assert_eq!(
             (

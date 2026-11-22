@@ -11,7 +11,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sim_core::strategy_study::{Delivery, StrategyStudy, run_study};
+use sim_core::strategy_study::{Delivery, Material, StrategyStudy, run_study};
 use sim_core::{Engine, ModelProposal};
 use std::{
     collections::HashSet,
@@ -217,6 +217,8 @@ struct StrategyCommand {
     case_id: String,
     conflict_seq: u64,
     delivery: Delivery,
+    #[serde(default)]
+    material: Material,
 }
 
 #[derive(Deserialize)]
@@ -455,19 +457,27 @@ async fn strategy_study(
     let snapshot = inner.engine.current();
     let oldest = snapshot.history.first().map_or(snapshot.tick, |f| f.tick);
     inner.strategy_studies.retain(|s| s.fork_tick >= oldest);
-    if let Some(study) = inner.strategy_studies.iter().find(|s| {
-        s.case_id == command.case_id
-            && s.fork_seq == command.conflict_seq
-            && s.delivery == command.delivery
-    }) {
-        return Ok(Json(study.clone()));
+    let mut siblings = inner
+        .strategy_studies
+        .iter()
+        .filter(|s| s.case_id == command.case_id && s.fork_seq == command.conflict_seq);
+    let study = if let Some(first) = siblings.next() {
+        if let Some(saved) = std::iter::once(first)
+            .chain(siblings)
+            .find(|s| s.delivery == command.delivery && s.material == command.material)
+        {
+            return Ok(Json(saved.clone()));
+        }
+        first.with_conditions(command.delivery, command.material)
+    } else {
+        run_study(
+            inner.engine.current(),
+            &command.case_id,
+            command.conflict_seq,
+            command.delivery,
+            command.material,
+        )
     }
-    let study = run_study(
-        inner.engine.current(),
-        &command.case_id,
-        command.conflict_seq,
-        command.delivery,
-    )
     .map_err(bad)?;
     inner.strategy_studies.push(study.clone());
     Ok(Json(study))

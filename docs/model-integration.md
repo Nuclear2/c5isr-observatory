@@ -56,6 +56,16 @@ Get-Content -Raw .\snapshot.json | node scripts/codex-bridge.mjs analyze
 
 `usage` 仅保留 CLI 报告的非负整数 token 计数；未提供时为 `null`。这些计数不能推导剩余订阅额度或货币费用。`proposals` 为 1–3 条，每条严格只有示例中的七个字段。结果验证失败或请求失败时输出 `{"error":"简短的可读错误"}` 并返回非零退出码；原始服务错误和本地路径不会直接反射到错误文本。
 
+### 采集器报告复核实验
+
+用户主动请求证据研判时，服务器按所选分支和仿真步重建审核席的已读材料，调用 `evidence-advice`。桥接通过 stdin 接收 `{tick,reports}`。每份报告包含原编号、来源、报告类型、采集状态断言、断言覆盖时段、收件和阅读时间，以及可见的转述与更正关系。报告类型区分直接观察、转述、独立自检、更正和复核答复。两条关系分别使用 `derived_from` 和 `revises`，没有可见关联时填 `null`。
+
+桥接检查每次最多 32 份报告，逐项验证阅读时间、收件时间、字段和关系引用，在空的工作目录中向 CLI 提交匿名的 `report-N` 和 `source-N`。当前帧的判断只使用截至该步已读的材料。模型独立估计所引用材料背后有几个原始来源，供用户与实验的来源记录对照。
+
+成功时返回 `action`（`hold`、`request_review` 或 `conclude`）、恢复原编号的 `evidence_ids`、模型估计的 `source_count`、中文理由 `reason`、尚待澄清的 `uncertainties` 及 CLI 提供的 `usage`。这是一份供审阅的意见。实验的审批记录仍取自该分支实际发生的审批。输出格式见[证据研判协议](../contracts/evidence-advice.schema.json)。
+
+此模式复用现有订阅登录、请求超时、临时工作目录、JSONL 解析和 `--cancel-file` 机制。打开回放和运行两条规则分支均可离线完成。
+
 ## 输入最小化
 
 桥接先在本机筛选并重新命名对象。发送内容仅包括：

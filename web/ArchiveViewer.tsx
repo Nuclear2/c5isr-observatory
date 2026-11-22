@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, FileJson, History, Layers3, Network, ShieldCheck, TriangleAlert } from 'lucide-react';
-import { parseArchive, MAX_ARCHIVE_BYTES } from './archive';
+import { parseArchive, parseArchiveData, MAX_ARCHIVE_BYTES } from './archive';
+import type { LabArchive } from '../contracts/evidence';
+import { parseEvidenceArchiveData, MAX_LAB_ARCHIVE_BYTES } from './evidenceArchive';
+import EvidenceLab from './EvidenceLab';
 import DecisionPanel from './DecisionPanel';
 import ReportComparison from './ReportComparisonPanel';
 import SituationMap from './SituationMap';
@@ -9,6 +12,7 @@ import { UnitInspector } from './App';
 export default function ArchiveViewer() {
   const example = new URLSearchParams(window.location.search).get('example');
   const [archive, setArchive] = useState<ReturnType<typeof parseArchive> | null>(null);
+  const [evidence, setEvidence] = useState<LabArchive | null>(null);
   const [filename, setFilename] = useState('');
   const [error, setError] = useState<string | null>(example !== null && example !== 'two-node' ? '找不到指定的回放示例。' : null);
   const [loading, setLoading] = useState(example === 'two-node');
@@ -50,14 +54,31 @@ export default function ArchiveViewer() {
     setError(null); setLoading(true);
     try {
       if (file.size > MAX_ARCHIVE_BYTES) throw new Error(`文件超过 ${Math.round(MAX_ARCHIVE_BYTES / 1024 / 1024)} MiB 限制。`);
-      const parsed = parseArchive(await file.text());
+      let data: unknown;
+      try { data = JSON.parse(await file.text()); }
+      catch { throw new Error('无法读取 JSON，请选择完整的实验归档。'); }
+      if (data && typeof data === 'object' && 'kind' in data && data.kind === 'c5isr-evidence-lab') {
+        if (file.size > MAX_LAB_ARCHIVE_BYTES) throw new Error('报告复核归档超过 8 MiB 上限。');
+        setEvidence(parseEvidenceArchiveData(data));
+        return;
+      }
+      const parsed = parseArchiveData(data);
       if (!parsed.history.length) throw new Error('文件没有可回放的历史帧。');
       setArchive(parsed); setFilename(file.name); setIndex(0); setSelected(null); setView('decisions');
     } catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
     finally { setLoading(false); }
   };
+  if (evidence) return <EvidenceLab initialArchive={evidence} />;
   return <div className="archive-shell">
-    <header className="archive-header"><div><span className="eyebrow">C5ISR / ARCHIVE REPLAY</span><h1>本地实验回放</h1></div><span className="archive-readonly"><ShieldCheck size={14} />只读 · 不连接实时系统</span><label className={`archive-file-button ${loading ? 'loading' : ''}`}><FileJson size={16} />{loading ? '读取中…' : '选择实验 JSON'}<input type="file" accept=".json,application/json" disabled={loading} aria-label="选择本地实验 JSON 文件" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; void readFile(file); }} /></label><a className="archive-readonly" href="/"><Network size={14} />实时态势</a></header>
+    <header className="archive-header">
+      <div><span className="eyebrow">C5ISR / ARCHIVE REPLAY</span><h1>本地实验回放</h1></div>
+      <span className="archive-readonly"><ShieldCheck size={14} />只读 · 不连接实时系统</span>
+      <label className={`archive-file-button ${loading ? 'loading' : ''}`}><FileJson size={16} />{loading ? '读取中…' : '选择实验 JSON'}
+        <input type="file" accept=".json,application/json" disabled={loading} aria-label="选择本地实验 JSON 文件" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; void readFile(file); }} />
+      </label>
+      <a className="archive-readonly" href="/?view=evidence&amp;example=collector"><History size={14} />报告复核示例</a>
+      <a className="archive-readonly" href="/"><Network size={14} />实时态势</a>
+    </header>
     <p className="archive-intro">文件仅在本标签页读取，不上传、不调用模型，也不改变正在运行的实验。{filename && <strong>{filename}</strong>}</p>
     {error && <div className="error-banner" role="alert"><TriangleAlert size={15} /><span>无法载入：{error}</span></div>}
     {!frame || !archive ? <main className="archive-empty"><History size={46} strokeWidth={1} /><h2>{loading ? '正在读取回放' : '打开已导出的实验记录'}</h2><p>回看合成态势、冻结报告、人工与 AI 审核和实际送达过程。</p>{!loading && <a className="archive-readonly" href="/?view=archive&amp;example=two-node"><History size={14} />打开双节点断链补报示例</a>}</main> : <>

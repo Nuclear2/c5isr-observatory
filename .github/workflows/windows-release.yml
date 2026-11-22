@@ -110,6 +110,8 @@ jobs:
             $health = Invoke-RestMethod "$base/api/health" -TimeoutSec 5
             $archive = Invoke-RestMethod "$base/examples/two-node-replay.json" -TimeoutSec 5
             if ($health.status -ne 'ok' -or $health.version -ne $env:VERSION -or $archive.snapshot.history.Count -ne 11) { throw 'Unexpected health or replay data' }
+            $lab = Invoke-RestMethod "$base/examples/evidence-review.json" -TimeoutSec 5
+            if ($lab.kind -ne 'c5isr-evidence-lab' -or $lab.immediate.frames.Count -ne 49 -or $lab.review.frames.Count -ne 49 -or $lab.batch.Count -ne 8) { throw 'Unexpected evidence replay data in extracted ZIP' }
           } finally {
             if (!$server.HasExited) { $server.Kill(); $server.WaitForExit() }
             $server.Dispose()
@@ -161,7 +163,7 @@ jobs:
             exit 0
           fi
           cat > "$RUNNER_TEMP/notes.md" <<EOF
-          下载 \`$zip\`，全部解压后双击 \`C5ISR-Observatory.exe\`。浏览器会打开本机 T+8 的双节点对照回放。回放无需安装 Node.js、Rust 或登录账号。
+          下载 \`$zip\`，全部解压后双击 \`C5ISR-Observatory.exe\`。浏览器会打开本机 T+8 的双节点对照回放。点击页头 **报告复核示例**，可从 T+6 查看审核席当时已读的报告及审批引用，再进入 **分支对照** 比较直接判断与请求复核。随包保存了两条分支各 49 帧和 8 个种子的统计，离线回放无需安装 Node.js、Rust 或登录账号。
 
           **ZIP SHA-256** \`$digest\`
           EOF

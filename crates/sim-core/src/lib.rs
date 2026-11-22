@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+pub mod evidence_lab;
 mod report_versions;
 pub use report_versions::ReportVersion;
 

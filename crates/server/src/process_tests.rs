@@ -161,7 +161,7 @@ async fn parent_exit_does_not_hide_a_living_descendant() {
     assert_eq!(std::fs::read(dir.file("heartbeat")).unwrap(), before);
 }
 
-fn app_fixture(root: PathBuf) -> Arc<AppState> {
+pub(super) fn app_fixture(root: PathBuf) -> Arc<AppState> {
     let inner = Inner {
         engine: Engine::new(1),
         server_epoch: "shutdown-test".into(),
@@ -225,6 +225,7 @@ async fn shutdown_waits_for_active_job_cleanup_and_discards_its_late_response() 
         inner.model.busy = true;
         inner.active_job = Some(ActiveJob {
             id: 1,
+            advice_request: None,
             cancel_path: marker.clone(),
             cancelled: false,
         });

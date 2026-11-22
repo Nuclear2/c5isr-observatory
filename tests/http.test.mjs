@@ -326,3 +326,91 @@ test('unavailable AI never silently starts a rule-only automatic mode and manual
   assert.equal(stopped.automation.mode, 'manual');
   assert.equal(stopped.automation.next_run_in_seconds, null);
 });
+
+const evidenceConfig = { seed: 20261022, read_interval: 3 };
+
+test('bundled evidence example reproduces both branches with the same read queues and citations', async () => {
+  const example = await get('/examples/evidence-review.json');
+  assert.equal(example.kind, 'c5isr-evidence-lab');
+  const before = await get('/api/state');
+  const live = await post('/api/evidence/run', example.config);
+  const { advice = [], batch = [], ...recorded } = example;
+  assert.deepEqual(live, recorded);
+  assert.deepEqual(advice, [], 'bundled example must not claim a model opinion');
+  if (batch.length) assert.deepEqual(await post('/api/evidence/batch', { config: example.config, count: batch.length }), batch);
+  assert.deepEqual(live.immediate.frames.slice(0, live.fork_tick), live.review.frames.slice(0, live.fork_tick));
+  let sawUnread = false, sawCorrection = false;
+  for (const branch of [live.immediate, live.review]) {
+    for (const frame of branch.frames) {
+      const received = new Map(frame.reports.map(report => [report.id, report]));
+      assert.ok(frame.reports.every(report => report.received_tick <= frame.tick));
+      assert.deepEqual(frame.queue_ids, frame.reports.filter(report => report.read_tick === null).map(report => report.id));
+      sawUnread ||= frame.queue_ids.length > 0;
+      for (const id of frame.active_ids) assert.ok(Number.isSafeInteger(received.get(id)?.read_tick));
+      for (const decision of frame.decisions) {
+        assert.ok(decision.tick <= frame.tick);
+        for (const id of decision.evidence_ids) {
+          const report = received.get(id);
+          assert.ok(decision.read_ids.includes(id) && Number.isSafeInteger(report?.read_tick) && report.read_tick <= decision.tick);
+        }
+      }
+      sawCorrection ||= frame.active_ids.some(id => received.get(id).revises === 'R1');
+    }
+  }
+  assert.ok(sawUnread && sawCorrection);
+  const decision = live.immediate.frames[live.fork_tick].decisions.at(-1);
+  assert.deepEqual(decision.evidence_ids, ['R1', 'R2']);
+  assert.deepEqual(decision.independent_roots, ['R1']);
+  assert.equal(live.review.frames[live.fork_tick].decisions.at(-1).action, 'request_review');
+  assert.deepEqual(await get('/api/state'), before, 'running a lab or opening its example never changes the live system');
+});
+
+test('paired seed batches match independent runs and custom citations belong to the selected frame', async () => {
+  const count = 3;
+  const rows = await post('/api/evidence/batch', { config: evidenceConfig, count });
+  assert.equal(rows.length, count);
+  for (const [offset, row] of rows.entries()) {
+    const seed = evidenceConfig.seed + offset;
+    const run = await post('/api/evidence/run', { ...evidenceConfig, seed });
+    assert.deepEqual(row, { seed, immediate: run.immediate.metrics, review: run.review.metrics });
+  }
+  const custom = await post('/api/evidence/run', { ...evidenceConfig, cited_ids: ['R2'] });
+  const decision = custom.immediate.frames[custom.fork_tick].decisions.at(-1);
+  assert.equal(decision.actor, 'human');
+  assert.deepEqual(decision.evidence_ids, ['R2']);
+  assert.deepEqual(decision.independent_roots, ['R1']);
+  for (const config of [
+    { ...evidenceConfig, read_interval: 0 }, { ...evidenceConfig, read_interval: 7 },
+    { ...evidenceConfig, fork_tick: 0 }, { ...evidenceConfig, fork_tick: 37 },
+    { ...evidenceConfig, cited_ids: [] }, { ...evidenceConfig, cited_ids: ['R1','R1'] },
+    { ...evidenceConfig, cited_ids: ['R4'] },
+  ]) await post('/api/evidence/run', config, 400);
+  for (const batch of [
+    { config: evidenceConfig, count: 0 }, { config: evidenceConfig, count: 33 },
+    { config: { ...evidenceConfig, seed: 4294967295 }, count: 2 },
+    { config: { ...evidenceConfig, cited_ids: ['R2'] }, count: 2 },
+  ]) await post('/api/evidence/batch', batch, 400);
+});
+
+test('advice uses server-reconstructed evidence and disabled models and unowned cancellations leave no jobs', async () => {
+  const initial = await get('/api/state');
+  const baseRequest = { config: evidenceConfig, tick: 24, branch: 'immediate', request_id: 'offline-http-test' };
+  await post('/api/evidence/advice', { ...baseRequest, tick: 0 }, 400);
+  await post('/api/evidence/advice', { ...baseRequest, tick: 1000 }, 400);
+  await post('/api/evidence/advice', { ...baseRequest, request_id: '../invalid' }, 400);
+  const injected = await fetch(base + '/api/evidence/advice', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...baseRequest, reports: [{ id: 'R4', read_tick: 1 }] }),
+  });
+  assert.equal(injected.status, 422);
+  for (const branch of ['immediate', 'review']) {
+    const disabled = await post('/api/evidence/advice', { ...baseRequest, branch }, 503);
+    assert.match(disabled.error, /C5ISR_DISABLE_MODEL/);
+    assert.ok(!('provider' in disabled));
+  }
+  await post('/api/evidence/advice/cancel', { request_id: baseRequest.request_id }, 409);
+  const end = await get('/api/state');
+  assert.equal(end.model.busy, false);
+  assert.deepEqual(end, initial);
+  assert.deepEqual((await get('/api/export')).model_runs, []);
+});

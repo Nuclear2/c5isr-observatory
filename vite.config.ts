@@ -6,11 +6,12 @@ export default defineConfig({
   plugins: [
     react(),
     {
-      name: 'bundled-two-node-replay',
+      name: 'bundled-replays',
       apply: 'build',
       generateBundle() {
-        const fileName = 'examples/two-node-replay.json';
-        this.emitFile({ type: 'asset', fileName, source: readFileSync(new URL(fileName, import.meta.url)) });
+        for (const fileName of ['examples/two-node-replay.json', 'examples/evidence-review.json']) {
+          this.emitFile({ type: 'asset', fileName, source: readFileSync(new URL(fileName, import.meta.url)) });
+        }
       },
     },
   ],

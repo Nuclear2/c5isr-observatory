@@ -7,6 +7,7 @@ import { join, toNamespacedPath } from 'node:path';
 import { tmpdir } from 'node:os';
 import { setTimeout as delay } from 'node:timers/promises';
 import { minimizeSnapshot, buildPrompt, validateModelOutput, parseCodexJsonl, createCodexParser, sanitizeEnvironment, codexExecArgs, LIMITS, createCancellation, parseArguments, runCodex } from '../scripts/codex-bridge.mjs';
+import { minimizeReadReports, buildEvidenceAdvicePrompt, validateEvidenceAdvice } from '../scripts/codex-bridge.mjs';
 
 function fixture() {
   return {
@@ -41,6 +42,92 @@ function stream(output = valid(), extra = []) {
     { type: 'turn.completed', usage: { input_tokens: 100, cached_input_tokens: 20, output_tokens: 50, secret: 'not retained' } },
   ].map(JSON.stringify).join('\n');
 }
+
+function evidencePacket() {
+  const original = {
+    id: 'R-local', source_id: '本地采集器标识', kind: 'direct', claim: 'normal',
+    period_start: 0, period_end: 1, received_tick: 2, read_tick: 3, derived_from: null, revises: null,
+  };
+  return { tick: 12, reports: [
+    original,
+    { ...original, id: 'R-copy', source_id: 'local-relay', kind: 'relay', derived_from: 'R-local', received_tick: 4, read_tick: 6 },
+    { ...original, id: 'R-independent', source_id: 'local-diagnostic', kind: 'self_check', claim: 'interrupted', received_tick: 5, read_tick: 9 },
+    { ...original, id: 'R-revised', kind: 'correction', claim: 'interrupted', revises: 'R-local', received_tick: 9, read_tick: 12 },
+  ] };
+}
+
+test('read evidence keeps only visible relationships and stable per-call source aliases', () => {
+  const packet = evidencePacket();
+  const context = minimizeReadReports(packet);
+  const prompt = buildEvidenceAdvicePrompt(context);
+  for (const original of packet.reports) {
+    assert.ok(!prompt.includes(original.id)); assert.ok(!prompt.includes(original.source_id));
+  }
+  assert.deepEqual(context.input.reports.map(r => r.source_id), ['source-1', 'source-2', 'source-3', 'source-1']);
+  assert.equal(context.input.reports[1].derived_from, 'report-1');
+  assert.equal(context.input.reports[3].revises, 'report-1');
+  assert.equal(context.input.reports[1].period_end, 1);
+  assert.equal(context.input.reports[2].read_tick, 9);
+  assert.equal(context.input.reports[2].received_tick, 5);
+  assert.deepEqual(Object.keys(context.input).sort(), ['reports', 'tick']);
+  for (const extra of ['seed', 'queue', 'verified_source_count', 'later_outcome', 'model_notes']) {
+    assert.throws(() => minimizeReadReports({ ...packet, [extra]: 'excluded' }));
+  }
+});
+
+test('read evidence rejects unread or future packets, unknown relations, times and instructions', () => {
+  for (const change of [
+    { read_tick: null }, { read_tick: 13 }, { received_tick: 4 }, { period_end: 13 },
+    { period_start: 2 }, { kind: 'user-instruction' }, { claim: 'free text' },
+    { derived_from: 'R-unread' }, { revises: 'R-local' }, { note: 'arbitrary prose' },
+  ]) {
+    const packet = evidencePacket();
+    Object.assign(packet.reports[0], change);
+    assert.throws(() => minimizeReadReports(packet));
+  }
+  const duplicate = evidencePacket();
+  duplicate.reports.push(duplicate.reports[0]);
+  assert.throws(() => minimizeReadReports(duplicate));
+  assert.throws(() => minimizeReadReports({ tick: 0, reports: [] }), /没有读过报告/u);
+});
+
+test('advisory output preserves model estimate independently from cited original sources', async () => {
+  const context = minimizeReadReports(evidencePacket());
+  const opinion = { action: 'request_review', evidence_ids: ['report-1', 'report-2'], source_count: 2, reason: '需要核对重复转述。', uncertainties: ['原始记录的覆盖范围'] };
+  // This deliberately mistaken estimate is the measured model response.
+  const result = validateEvidenceAdvice(opinion, context);
+  assert.deepEqual(result.evidence_ids, ['R-local', 'R-copy']);
+  assert.equal(result.source_count, 2);
+  const schema = JSON.parse(await readFile(new URL('../contracts/evidence-advice.schema.json', import.meta.url)));
+  assert.equal(schema.additionalProperties, false);
+  assert.deepEqual(Object.keys(result).sort(), schema.required.sort());
+  for (const action of schema.properties.action.enum) assert.doesNotThrow(() => validateEvidenceAdvice({ ...opinion, action }, context));
+  for (const invalid of [
+    { action: 'approve' }, { evidence_ids: ['report-9'] }, { evidence_ids: ['R-local'] },
+    { evidence_ids: ['report-1', 'report-1'] }, { evidence_ids: [] }, { source_count: 3 },
+    { source_count: -1 }, { source_count: 1.2 }, { reason: '' }, { uncertainties: null }, { execute: true },
+  ]) assert.throws(() => validateEvidenceAdvice({ ...opinion, ...invalid }, context));
+});
+
+test('evidence-advice supports the existing cancel-file protocol and never logs private inputs', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'c5isr-evidence-cancel-'));
+  const marker = join(directory, 'request.cancel');
+  const bridge = fileURLToPath(new URL('../scripts/codex-bridge.mjs', import.meta.url));
+  const env = { ...process.env, C5ISR_CODEX_PATH: 'definitely-not-a-real-codex-executable' };
+  try {
+    const packet = { tick: 1, reports: [{ note: 'DO NOT LOG THIS' }] };
+    const invalid = spawnSync(process.execPath, [bridge, 'evidence-advice'], { input: JSON.stringify(packet), env, encoding: 'utf8', windowsHide: true });
+    assert.equal(invalid.status, 1);
+    assert.equal(invalid.stderr, '');
+    assert.deepEqual(JSON.parse(invalid.stdout), { error: '输入快照无效或超出允许范围。' });
+    await writeFile(marker, '');
+    const args = ['evidence-advice', '--cancel-file', marker];
+    assert.deepEqual(parseArguments(args), { mode: 'evidence-advice', cancelFile: marker });
+    const cancelled = spawnSync(process.execPath, [bridge, ...args], { input: JSON.stringify(evidencePacket()), env, encoding: 'utf8', windowsHide: true });
+    assert.equal(cancelled.status, 1); assert.equal(cancelled.stderr, '');
+    assert.deepEqual(JSON.parse(cancelled.stdout), { error: '模型调用已取消' });
+  } finally { await unlink(marker).catch(() => {}); await rmdir(directory); }
+});
 
 test('minimization excludes identities, positions, hostile records, free text, and history', () => {
   const context = minimizeSnapshot(fixture());

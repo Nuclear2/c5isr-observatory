@@ -42,6 +42,7 @@ add('C5ISR-Observatory.exe', exe);
 add('LICENSE');
 add('scripts/codex-bridge.mjs');
 add('contracts/model-output.schema.json');
+add('contracts/evidence-advice.schema.json');
 add('dist/index.html');
 const html = readFileSync('dist/index.html', 'utf8');
 const refs = [...html.matchAll(/\b(?:src|href)="([^"]+)"/g)].map(match => match[1]);
@@ -50,9 +51,10 @@ for (const ref of refs) {
   if (!/^\/assets\/index-[A-Za-z0-9_-]+\.(?:js|css)$/.test(ref)) throw new Error('Unexpected asset in dist/index.html');
   add('dist' + ref);
 }
-const sample = 'examples/two-node-replay.json';
-if (!readFileSync(sample).equals(readFileSync('dist/' + sample))) throw new Error('Built replay must match the repository example.');
-add('dist/' + sample);
+for (const sample of ['examples/two-node-replay.json', 'examples/evidence-review.json']) {
+  if (!readFileSync(sample).equals(readFileSync('dist/' + sample))) throw new Error('Built replay must match ' + sample);
+  add('dist/' + sample);
+}
 
 // Collect upstream notices without serializing manifests or their source paths.
 const notices = [];

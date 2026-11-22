@@ -42,6 +42,10 @@
   line-height: 1.7;
 }
 
+@media (max-width: 640px) {
+  .lab-nav-label { display: none; }
+}
+
 .stop-confirmation.unconfirmed {
   color: #edc090;
   border-color: #775b37;

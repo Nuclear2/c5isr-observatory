@@ -26,6 +26,7 @@ use tokio::{
 };
 use tower_http::services::{ServeDir, ServeFile};
 
+mod evidence;
 #[cfg(test)]
 mod process_tests;
 mod startup;
@@ -75,6 +76,7 @@ impl Default for AutomationStatus {
 
 struct ActiveJob {
     id: u64,
+    advice_request: Option<String>,
     cancel_path: PathBuf,
     cancelled: bool,
 }
@@ -219,6 +221,18 @@ async fn cancel_active(inner: &mut Inner) -> Result<(), ApiError> {
     Ok(())
 }
 
+async fn cancel_live_job(inner: &mut Inner) -> Result<(), ApiError> {
+    // The evidence lab shares the provider slot but has its own request owner.
+    if inner
+        .active_job
+        .as_ref()
+        .is_some_and(|job| job.advice_request.is_some())
+    {
+        return Ok(());
+    }
+    cancel_active(inner).await
+}
+
 async fn automation(
     State(app): State<Arc<AppState>>,
     Json(command): Json<AutomationCommand>,
@@ -259,7 +273,7 @@ async fn automation(
         "manual" => {
             stop_automation(&mut inner, None);
             inner.record("automation_stopped", json!({"reason":"user"}));
-            let cancellation = cancel_active(&mut inner).await;
+            let cancellation = cancel_live_job(&mut inner).await;
             app.publish(&inner);
             cancellation?;
         }
@@ -290,7 +304,7 @@ async fn control(
             if inner.automation.mode == "ai" {
                 stop_automation(&mut inner, None);
                 inner.record("automation_stopped", json!({"reason":"pause"}));
-                let cancellation = cancel_active(&mut inner).await;
+                let cancellation = cancel_live_job(&mut inner).await;
                 app.publish(&inner);
                 cancellation?;
             } else {
@@ -319,7 +333,7 @@ async fn control(
                 return Err(bad("seed 超过 JavaScript 精确整数范围"));
             }
             stop_automation(&mut inner, None);
-            let cancellation = cancel_active(&mut inner).await;
+            let cancellation = cancel_live_job(&mut inner).await;
             app.publish(&inner);
             cancellation?;
             inner.engine = Engine::new(seed);
@@ -827,12 +841,11 @@ fn bridge_input(snapshot: &sim_core::Snapshot) -> Value {
     })
 }
 
-fn prepare_job(
+fn reserve_model(
     inner: &mut Inner,
     root: &std::path::Path,
-    automatic: bool,
-    now: Instant,
-) -> Result<ModelJob, ApiError> {
+    advice_request: Option<String>,
+) -> Result<(u64, PathBuf), ApiError> {
     if inner.model.busy {
         return Err(ApiError(
             StatusCode::CONFLICT,
@@ -845,10 +858,6 @@ fn prepare_job(
             inner.model.detail.clone(),
         ));
     }
-    let snapshot = inner.engine.current();
-    let input = bridge_input(snapshot);
-    let run_id = snapshot.run_id.clone();
-    let input_tick = snapshot.tick;
     inner.job_sequence += 1;
     let id = inner.job_sequence;
     let cancel_path = root
@@ -856,11 +865,26 @@ fn prepare_job(
         .join(format!("{}-{id}.cancel", inner.server_epoch));
     inner.active_job = Some(ActiveJob {
         id,
+        advice_request,
         cancel_path: cancel_path.clone(),
         cancelled: false,
     });
     inner.model.busy = true;
+    Ok((id, cancel_path))
+}
+
+fn prepare_job(
+    inner: &mut Inner,
+    root: &std::path::Path,
+    automatic: bool,
+    now: Instant,
+) -> Result<ModelJob, ApiError> {
+    let (id, cancel_path) = reserve_model(inner, root, None)?;
     inner.model.last_error = None;
+    let snapshot = inner.engine.current();
+    let input = bridge_input(snapshot);
+    let run_id = snapshot.run_id.clone();
+    let input_tick = snapshot.tick;
     if automatic {
         inner.automation.phase = "analyzing".into();
         inner.automation.next_due = Some(now + Duration::from_secs(AI_INTERVAL_SECONDS));
@@ -1217,6 +1241,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/model/analyze", post(analyze))
         .route("/automation", post(automation))
         .route("/export", get(export))
+        .nest("/evidence", evidence::routes())
         .fallback(|| async { ApiError(StatusCode::NOT_FOUND, "未知 API 路径".into()) });
     let router = Router::new()
         .nest("/api", api)

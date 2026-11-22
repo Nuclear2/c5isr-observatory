@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Activity, ArrowRight, Check, ChevronDown, ChevronRight, CircleHelp, Clock3, Download, Eye, History, Layers3, LoaderCircle, Network, Pause, Play, Radio, RefreshCw, Search, ShieldCheck, SkipForward, Sparkles, TriangleAlert, X, Zap, Satellite, Signal, Compass, Cpu, CircleDot } from 'lucide-react';
+import { Activity, ArrowRight, Check, ChevronDown, ChevronRight, CircleHelp, Clock3, Download, Eye, FlaskConical, History, Layers3, LoaderCircle, Network, Pause, Play, Radio, RefreshCw, Search, ShieldCheck, SkipForward, Sparkles, TriangleAlert, X, Zap, Satellite, Signal, Compass, Cpu, CircleDot } from 'lucide-react';
 import type { Frame, Snapshot, Unit } from '../contracts/state';
 import { getState, request } from './api';
 import SituationMap from './SituationMap';
@@ -163,7 +163,13 @@ function App() {
     <header className="topbar">
       <a className="brand" href="/" aria-label="C5ISR Observatory 主页"><span className="brand-mark"><Network size={22} strokeWidth={1.6} /></span><span className="brand-name">C5ISR<span className="brand-divider">/</span><span className="brand-subtitle">OBSERVATORY</span></span><span className="version-tag">LAB 01</span></a>
       <div className="header-context"><span className="context-dot" />澄海 · 信息协同实验<span className="context-divider" />虚构场景</div>
-      <div className="topbar-actions"><span className="synthetic-badge"><ShieldCheck size={13} />合成参数 · 虚构区域</span><button className="icon-button export-button" onClick={exportRun} disabled={!state} title="导出实验记录" aria-label="导出实验记录"><Download size={17} /></button><a className="archive-link" href="?view=archive" target="_blank" rel="noopener noreferrer"><History size={14} />本地回放</a><button className="icon-button" onClick={() => setHelpOpen(true)} title="使用说明" aria-label="打开使用说明"><CircleHelp size={17} /></button></div>
+      <div className="topbar-actions">
+        <span className="synthetic-badge"><ShieldCheck size={13} />合成参数 · 虚构区域</span>
+        <button className="icon-button export-button" onClick={exportRun} disabled={!state} title="导出实验记录" aria-label="导出实验记录"><Download size={17} /></button>
+        <a className="archive-link" href="?view=evidence" target="_blank" rel="noopener noreferrer" title="报告复核实验" aria-label="报告复核实验"><FlaskConical size={14} /><span className="lab-nav-label">报告复核实验</span></a>
+        <a className="archive-link" href="?view=archive" target="_blank" rel="noopener noreferrer"><History size={14} />本地回放</a>
+        <button className="icon-button" onClick={() => setHelpOpen(true)} title="使用说明" aria-label="打开使用说明"><CircleHelp size={17} /></button>
+      </div>
     </header>
 
     <div className="main-layout">

@@ -95,13 +95,17 @@ function readReportVersions(input: unknown, lastFrame: Frame): ReportVersion[] {
 }
 
 /** Only recorded public data reaches the viewer. Journal and provider data stay unused. */
-export function parseArchive(text: string): { history: Frame[]; decision_log: DecisionEvent[]; report_versions?: ReportVersion[] } {
+export function parseArchive(text: string) {
   if (text.length > MAX_ARCHIVE_BYTES || new Blob([text]).size > MAX_ARCHIVE_BYTES) {
     throw new Error('文件超过 64 MiB 的回看上限。');
   }
   let file: unknown;
   try { file = JSON.parse(text); }
   catch { throw new Error('无法读取 JSON，请选择从实验界面导出的完整文件。'); }
+  return parseArchiveData(file);
+}
+
+export function parseArchiveData(file: unknown): { history: Frame[]; decision_log: DecisionEvent[]; report_versions?: ReportVersion[] } {
   if (!record(file) || file.kind !== 'c5isr-synthetic-experiment' || file.schema_version !== 1 || !record(file.snapshot)) {
     throw new Error('无法识别实验归档类型或版本。');
   }

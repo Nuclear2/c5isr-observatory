@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCHEMA = resolve(HERE, '../contracts/model-output.schema.json');
+const ADVICE_SCHEMA = resolve(HERE, '../contracts/evidence-advice.schema.json');
 export const LIMITS = Object.freeze({ bytes: 1024 * 1024, timeoutMs: 90_000, statusTimeoutMs: 15_000, proposals: 3 });
 const ACTIONS = new Set(['review_data', 'restore_link', 'request_observation', 'hold']);
 const DOMAINS = new Set(['air', 'surface', 'subsurface', 'ground', 'space']);
@@ -15,6 +16,7 @@ const PROPOSAL_KEYS = ['title', 'rationale', 'action', 'subject_id', 'evidence_i
 const ERROR_MESSAGES = {
   input: '输入快照无效或超出允许范围。',
   evidence: '没有可供本次审阅引用的近期本方观察；请推进合成仿真后手动重试。',
+  unread: '截至所选仿真步，审核席还没有读过报告。',
   output: 'Codex 返回的数据未通过结构或引用校验。',
   protocol: 'Codex 事件流不完整或格式不受支持。',
   timeout: 'Codex 请求超时，已终止本次子进程。',
@@ -161,6 +163,69 @@ export function validateModelOutput(value, context) {
     return { title, rationale, action: p.action, subject_id: context.subjectMap.get(p.subject_id), evidence_ids, uncertainties, expected_effect };
   });
   return { proposals, summary };
+}
+
+/** The server reconstructs this reviewer's inbox at the selected frame. A
+ * second allowlist here admits only read reports and their visible ancestry. */
+export function minimizeReadReports(packet) {
+  exactKeys(packet, ['tick', 'reports'], 'input');
+  const tick = number(packet.tick, 1e9, true);
+  const reports = array(packet.reports, 32);
+  if (!reports.length) fail('unread');
+  uniqueIds(reports);
+  const aliases = new Map(reports.map((r, i) => [r.id, `report-${i + 1}`]));
+  const sources = new Map();
+  const visible = reports.map(report => {
+    exactKeys(report, ['id', 'source_id', 'kind', 'claim', 'period_start', 'period_end', 'received_tick', 'read_tick', 'derived_from', 'revises'], 'input');
+    if (!['direct', 'relay', 'self_check', 'correction', 'clarification'].includes(report.kind)
+        || !['normal', 'interrupted'].includes(report.claim)) fail('input');
+    const read = number(report.read_tick, tick, true);
+    const received = number(report.received_tick, read, true);
+    const end = number(report.period_end, tick, true);
+    const start = number(report.period_start, end, true);
+    const source = textValue(report.source_id, 96, 'input');
+    if (!sources.has(source)) sources.set(source, `source-${sources.size + 1}`);
+    const link = target => {
+      if (target === null) return null;
+      if (target === report.id || !aliases.has(target)) fail('input');
+      return aliases.get(target);
+    };
+    return {
+      id: aliases.get(report.id), source_id: sources.get(source), kind: report.kind, claim: report.claim,
+      period_start: start, period_end: end, received_tick: received, read_tick: read,
+      derived_from: link(report.derived_from), revises: link(report.revises),
+    };
+  });
+  const evidenceMap = new Map([...aliases].map(([original, alias]) => [alias, original]));
+  return { input: { tick, reports: visible }, evidenceMap };
+}
+
+export function buildEvidenceAdvicePrompt(context) {
+  return [
+    'You review reports about a synthetic data collector on an internal network. Use only the reports already read by this reviewer at tick. Use no tools or external context.',
+    'Each claim concerns the inclusive sample period period_start..period_end. received_tick is inbox receipt; read_tick is when the reviewer read the item.',
+    'kind is direct observation, relay, self_check, correction, or clarification. derived_from names a quoted source report and revises the report a correction supersedes. Null means no such parent is identified in these data.',
+    'Assess whether the available sources agree about that period. Distinguish independent observations, forwarding, revision, and unresolved disagreement. Do not infer unread reports, later outcomes, or another reviewer’s knowledge.',
+    'Return one JSON object matching the schema. Choose exactly one information-review recommendation: hold judgment, request_review for more information, or conclude using the read evidence. For conclude, state the supported finding and its scope in reason.',
+    'List the report IDs you rely upon in evidence_ids. Set source_count to your estimate of the number of independent original sources behind those cited reports. Make your own estimate and describe relevant unknowns in uncertainties.',
+    'Write reason and uncertainties in concise Chinese, use roles or report types in prose, and put opaque IDs only in evidence_ids. Your response is advisory and does not modify the simulation.',
+    JSON.stringify(context.input),
+  ].join('\n');
+}
+
+export function validateEvidenceAdvice(value, context) {
+  exactKeys(value, ['action', 'evidence_ids', 'source_count', 'reason', 'uncertainties']);
+  const ids = value.evidence_ids;
+  if (!['hold', 'request_review', 'conclude'].includes(value.action)
+      || !Array.isArray(ids) || !ids.length || ids.length > context.evidenceMap.size
+      || new Set(ids).size !== ids.length || !ids.every(key => context.evidenceMap.has(key))
+      || !Number.isSafeInteger(value.source_count) || value.source_count < 0 || value.source_count > ids.length
+      || !Array.isArray(value.uncertainties) || value.uncertainties.length > 5) fail('output');
+  return {
+    action: value.action, evidence_ids: ids.map(key => context.evidenceMap.get(key)),
+    source_count: value.source_count, reason: textValue(value.reason, 800),
+    uncertainties: value.uncertainties.map(item => textValue(item, 300)),
+  };
 }
 
 export function sanitizeEnvironment(environment = process.env) {
@@ -317,17 +382,15 @@ export async function checkStatus({ signal } = {}) {
   } finally { transcript = ''; }
 }
 
-export function codexExecArgs() {
+export function codexExecArgs(schema = SCHEMA) {
   const disabled = ['shell_tool', 'apps', 'plugins', 'browser_use', 'browser_use_external', 'computer_use', 'in_app_browser', 'multi_agent', 'hooks', 'image_generation', 'code_mode_host', 'tool_suggest', 'workspace_dependencies', 'memories', 'goals', 'auth_elicitation'];
-  return ['exec', '--ignore-user-config', '--ephemeral', '--skip-git-repo-check', '--sandbox', 'read-only', '--json', '--color', 'never', '--output-schema', SCHEMA,
+  return ['exec', '--ignore-user-config', '--ephemeral', '--skip-git-repo-check', '--sandbox', 'read-only', '--json', '--color', 'never', '--output-schema', schema,
     '-c', 'forced_login_method="chatgpt"', '-c', 'model_provider="openai"', '-c', 'web_search="disabled"', '-c', 'project_doc_max_bytes=0', '-c', 'hide_agent_reasoning=true', '-c', 'history.persistence="none"',
     ...disabled.flatMap(feature => ['--disable', feature]), '-'];
 }
 
-export async function analyze(snapshot, { signal } = {}) {
+async function runStructuredReview(prompt, schema, signal) {
   throwIfCancelled(signal);
-  const context = minimizeSnapshot(snapshot);
-  if (!context.evidenceMap.size) fail('evidence');
   const status = await checkStatus({ signal });
   throwIfCancelled(signal);
   if (!status.available) throw new BridgeError(Object.keys(ERROR_MESSAGES).find(key => ERROR_MESSAGES[key] === status.detail) ?? 'auth');
@@ -336,15 +399,29 @@ export async function analyze(snapshot, { signal } = {}) {
   try {
     // An empty working root and disabled project docs avoid feeding repository text.
     directory = await mkdtemp(join(tmpdir(), 'c5isr-model-'));
-    const code = await runCodex(codexExecArgs(), { cwd: directory, input: buildPrompt(context), timeoutMs: LIMITS.timeoutMs, signal, onStdout: chunk => parser.push(chunk), onStderr: chunk => { const category = classifyFailure(chunk); if (category !== 'failure') diagnostic = category; } });
+    const code = await runCodex(codexExecArgs(schema), { cwd: directory, input: prompt, timeoutMs: LIMITS.timeoutMs, signal, onStdout: chunk => parser.push(chunk), onStderr: chunk => { const category = classifyFailure(chunk); if (category !== 'failure') diagnostic = category; } });
     throwIfCancelled(signal);
     if (code !== 0) fail(diagnostic);
-    const parsed = parser.finish();
-    return { ...validateModelOutput(parsed.value, context), usage: parsed.usage };
+    return parser.finish();
   } finally {
     // Never recursively remove an arbitrary path. The temporary directory should be empty.
     if (directory) await rmdir(directory).catch(() => {});
   }
+}
+
+export async function analyze(snapshot, { signal } = {}) {
+  throwIfCancelled(signal);
+  const context = minimizeSnapshot(snapshot);
+  if (!context.evidenceMap.size) fail('evidence');
+  const { value, usage } = await runStructuredReview(buildPrompt(context), SCHEMA, signal);
+  return { ...validateModelOutput(value, context), usage };
+}
+
+export async function evidenceAdvice(packet, { signal } = {}) {
+  throwIfCancelled(signal);
+  const context = minimizeReadReports(packet);
+  const { value, usage } = await runStructuredReview(buildEvidenceAdvicePrompt(context), ADVICE_SCHEMA, signal);
+  return { ...validateEvidenceAdvice(value, context), usage };
 }
 
 export function createCancellation(cancelFile) {
@@ -360,9 +437,9 @@ export function createCancellation(cancelFile) {
 }
 
 export function parseArguments(args) {
-  if (args.length === 1 && ['status', 'analyze'].includes(args[0])) return { mode: args[0], cancelFile: null };
+  if (args.length === 1 && ['status', 'analyze', 'evidence-advice'].includes(args[0])) return { mode: args[0], cancelFile: null };
   if (args.length === 2 && args[0] === 'status' && args[1] === '--wait-for-stdin') return { mode: 'status', cancelFile: null, waitForStdin: true };
-  if (args.length === 3 && args[0] === 'analyze' && args[1] === '--cancel-file' && isAbsolute(args[2]) && args[2].length <= 32767 && !/[\r\n\u0000]/u.test(args[2])) return { mode: 'analyze', cancelFile: args[2] };
+  if (args.length === 3 && ['analyze', 'evidence-advice'].includes(args[0]) && args[1] === '--cancel-file' && isAbsolute(args[2]) && args[2].length <= 32767 && !/[\r\n\u0000]/u.test(args[2])) return { mode: args[0], cancelFile: args[2] };
   fail('input');
 }
 
@@ -396,7 +473,13 @@ async function main() {
       // owned process tree. Never spawn even login-status children before EOF.
       for await (const chunk of process.stdin) { if (chunk.length) fail('input'); }
     }
-    const result = args.mode === 'status' ? await checkStatus() : await analyze(await readSnapshot(cancellation.signal), { signal: cancellation.signal });
+    let result;
+    if (args.mode === 'status') {
+      result = await checkStatus();
+    } else {
+      const review = args.mode === 'evidence-advice' ? evidenceAdvice : analyze;
+      result = await review(await readSnapshot(cancellation.signal), { signal: cancellation.signal });
+    }
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } catch (error) {
     process.stdout.write(`${JSON.stringify({ error: error instanceof BridgeError ? error.message : ERROR_MESSAGES.failure })}\n`);

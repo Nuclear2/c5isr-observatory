@@ -1,5 +1,8 @@
 //! Offline lifecycle tests: only small local Node fixtures, never Codex/model calls.
 use super::*;
+#[cfg(windows)]
+use std::os::windows::io::{AsRawHandle, FromRawHandle, OwnedHandle, RawHandle};
+use tokio::net::{TcpListener, TcpStream};
 
 struct TestDirectory(PathBuf);
 impl TestDirectory {
@@ -24,7 +27,7 @@ impl TestDirectory {
 impl Drop for TestDirectory {
     fn drop(&mut self) {
         // Only known test-owned files; no recursive removal of computed paths.
-        for name in ["request.cancel", "observed-cancel", "heartbeat", "pids"] {
+        for name in ["request.cancel", "observed-cancel"] {
             let _ = std::fs::remove_file(self.file(name));
         }
         let _ = std::fs::remove_dir(&self.0);
@@ -47,6 +50,117 @@ fn js_path(path: &std::path::Path) -> String {
     serde_json::to_string(&path.to_string_lossy()).unwrap()
 }
 
+#[cfg(windows)]
+#[link(name = "kernel32")]
+unsafe extern "system" {
+    fn OpenProcess(access: u32, inherit: i32, pid: u32) -> RawHandle;
+    fn WaitForSingleObject(object: RawHandle, timeout_ms: u32) -> u32;
+    fn GetExitCodeProcess(object: RawHandle, exit_code: *mut u32) -> i32;
+}
+
+struct ObservedDescendant {
+    connection: TcpStream,
+    #[cfg(windows)]
+    process: OwnedHandle,
+}
+
+impl ObservedDescendant {
+    async fn accept(listener: &TcpListener) -> Self {
+        let (mut connection, _) = listener.accept().await.unwrap();
+        let pid = connection.read_u32().await.expect("descendant PID");
+        assert_ne!(pid, 0);
+        #[cfg(windows)]
+        let process = {
+            const SYNCHRONIZE: u32 = 0x0010_0000;
+            const PROCESS_QUERY_LIMITED_INFORMATION: u32 = 0x1000;
+            // SAFETY: the non-inheritable handle is used to wait on this exact
+            // descendant and read its exit status, even if Windows reuses its PID.
+            let raw =
+                unsafe { OpenProcess(SYNCHRONIZE | PROCESS_QUERY_LIMITED_INFORMATION, 0, pid) };
+            assert!(
+                !raw.is_null(),
+                "OpenProcess: {}",
+                std::io::Error::last_os_error()
+            );
+            unsafe { OwnedHandle::from_raw_handle(raw) }
+        };
+        connection.write_u8(1).await.unwrap();
+        Self {
+            connection,
+            #[cfg(windows)]
+            process,
+        }
+    }
+
+    async fn assert_exited(self) {
+        #[cfg(windows)]
+        {
+            // A forcibly terminated process can signal its handle just after
+            // the job reports zero active members. The fixture self-exits at 15 s.
+            // SAFETY: the handle stays open throughout both calls.
+            let raw = self.process.as_raw_handle();
+            assert_eq!(
+                unsafe { WaitForSingleObject(raw, 1000) },
+                0,
+                "descendant did not exit after bridge cleanup"
+            );
+            let mut code = 0;
+            assert_ne!(unsafe { GetExitCodeProcess(raw, &mut code) }, 0);
+            assert_eq!(
+                code, 1,
+                "expected the exit code passed to TerminateJobObject"
+            );
+            drop(self.connection);
+        }
+        #[cfg(unix)]
+        {
+            // Only the descendant owns the peer socket and never closes it in JS.
+            let mut connection = self.connection;
+            let eof = tokio::time::timeout(Duration::from_secs(1), connection.read_u8())
+                .await
+                .expect("descendant still held its connection after bridge cleanup")
+                .unwrap_err();
+            assert_eq!(eof.kind(), std::io::ErrorKind::UnexpectedEof);
+        }
+    }
+}
+
+async fn descendant_fixture() -> (TcpListener, String) {
+    let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))
+        .await
+        .unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let script = format!(
+        r#"
+        process.on('uncaughtException', () => process.exit(3));
+        process.on('unhandledRejection', () => process.exit(3));
+        const socket = require('node:net').connect({port}, '127.0.0.1', () => {{
+            const pid = Buffer.alloc(4);
+            pid.writeUInt32BE(process.pid);
+            socket.write(pid);
+        }});
+        socket.once('data', () => process.send?.('ready'));
+        setTimeout(() => process.exit(2), 15000);
+    "#
+    );
+    (listener, serde_json::to_string(&script).unwrap())
+}
+
+async fn check_descendant_cleanup(
+    listener: &TcpListener,
+    bridge: impl Future<Output = Result<std::process::Output, String>>,
+) -> Result<std::process::Output, String> {
+    let (result, probe) = tokio::join!(
+        bridge,
+        tokio::time::timeout(Duration::from_secs(4), ObservedDescendant::accept(listener)),
+    );
+    probe
+        .expect("descendant did not complete its startup handshake")
+        .assert_exited()
+        .await;
+    result
+}
+
 #[tokio::test]
 async fn bridge_process_exchanges_one_bounded_json_without_calling_model() {
     let output = run_bridge_process(node("process.stdin.resume(); process.stdin.on('end', () => console.log(JSON.stringify({ok:true})))"), Some(b"{}".to_vec()), None, Duration::from_secs(3), Duration::from_millis(100)).await.unwrap();
@@ -60,34 +174,29 @@ async fn bridge_process_exchanges_one_bounded_json_without_calling_model() {
 #[tokio::test]
 async fn deadline_includes_blocked_stdin_and_kills_descendant() {
     let dir = TestDirectory::new();
-    let heartbeat = js_path(&dir.file("heartbeat"));
-    let child_script = format!(
-        "const fs=require('node:fs'); setInterval(()=>fs.writeFileSync({heartbeat},String(Date.now())),20); setTimeout(()=>process.exit(0),5000)"
-    );
+    let (listener, child_script) = descendant_fixture().await;
     // Consume only one byte as an attachment handshake, then deliberately stop
     // reading so a large write blocks while the owned descendant is running.
     let script = format!(
-        "process.stdin.once('readable',()=>{{process.stdin.read(1);const {{spawn}}=require('node:child_process'); spawn(process.execPath,['-e',{}],{{stdio:'ignore',windowsHide:true}}); setTimeout(()=>process.exit(0),5000);}})",
-        serde_json::to_string(&child_script).unwrap()
+        r#"process.stdin.once('readable', () => {{
+            process.stdin.read(1);
+            require('node:child_process').spawn(process.execPath, ['-e', {child_script}],
+                {{stdio: 'ignore', windowsHide: true}});
+            setTimeout(() => process.exit(2), 5000);
+        }})"#
     );
     let started = Instant::now();
-    let result = run_bridge_process(
+    let marker = dir.file("request.cancel");
+    let bridge = run_bridge_process(
         node(&script),
         Some(vec![b'x'; 4_000_000]),
-        Some(&dir.file("request.cancel")),
+        Some(&marker),
         Duration::from_millis(700),
         Duration::from_millis(100),
-    )
-    .await;
+    );
+    let result = check_descendant_cleanup(&listener, bridge).await;
     assert_eq!(result.unwrap_err(), "模型调用超时");
     assert!(started.elapsed() < Duration::from_secs(3));
-    let before = std::fs::read(dir.file("heartbeat")).unwrap();
-    tokio::time::sleep(Duration::from_millis(200)).await;
-    assert_eq!(
-        std::fs::read(dir.file("heartbeat")).unwrap(),
-        before,
-        "descendant kept running after cleanup"
-    );
 }
 
 #[tokio::test]
@@ -132,33 +241,32 @@ async fn output_overflow_terminates_owned_tree_without_unbounded_buffer() {
 #[tokio::test]
 #[cfg(windows)]
 async fn parent_exit_does_not_hide_a_living_descendant() {
-    let dir = TestDirectory::new();
-    let child_script = format!(
-        "const fs=require('node:fs');setInterval(()=>fs.writeFileSync({},String(Date.now())),20);setTimeout(()=>process.exit(0),5000)",
-        js_path(&dir.file("heartbeat"))
-    );
+    let (listener, child_script) = descendant_fixture().await;
     // detached prevents libuv's own parent-exit cleanup from masking whether
     // our private Windows Job Object still owns the surviving descendant.
     let script = format!(
-        "const fs=require('node:fs');const{{spawn}}=require('node:child_process');const child=spawn(process.execPath,['-e',{}],{{stdio:'ignore',windowsHide:true,detached:true}});child.unref();const ready=setInterval(()=>{{if(fs.existsSync({})){{clearInterval(ready);console.log('{{\"ok\":true}}');process.exit(0)}}}},10);setTimeout(()=>process.exit(2),4000)",
-        serde_json::to_string(&child_script).unwrap(),
-        js_path(&dir.file("heartbeat"))
+        r#"const child = require('node:child_process').spawn(process.execPath, ['-e', {child_script}],
+            {{stdio: ['ignore', 'ignore', 'ignore', 'ipc'], windowsHide: true, detached: true}});
+        child.once('message', () => {{
+            child.disconnect();
+            child.unref();
+            console.log(JSON.stringify({{ok: true}}));
+            process.exit(0);
+        }});
+        setTimeout(() => process.exit(2), 4000);"#
     );
-    let result = run_bridge_process(
+    let bridge = run_bridge_process(
         gated_node(&script),
         None,
         None,
         Duration::from_secs(3),
         Duration::from_millis(30),
-    )
-    .await;
+    );
+    let result = check_descendant_cleanup(&listener, bridge).await;
     assert_eq!(
         result.unwrap_err(),
         "模型桥接退出后仍有子进程，已取消本次任务"
     );
-    let before = std::fs::read(dir.file("heartbeat")).unwrap();
-    tokio::time::sleep(Duration::from_millis(150)).await;
-    assert_eq!(std::fs::read(dir.file("heartbeat")).unwrap(), before);
 }
 
 pub(super) fn app_fixture(root: PathBuf) -> Arc<AppState> {

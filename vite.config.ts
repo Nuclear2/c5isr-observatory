@@ -1,8 +1,19 @@
+import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'bundled-two-node-replay',
+      apply: 'build',
+      generateBundle() {
+        const fileName = 'examples/two-node-replay.json';
+        this.emitFile({ type: 'asset', fileName, source: readFileSync(new URL(fileName, import.meta.url)) });
+      },
+    },
+  ],
   server: {
     host: '127.0.0.1',
     port: 5173,

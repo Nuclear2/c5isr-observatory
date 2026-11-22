@@ -8,11 +8,19 @@
 
 界面截图来自本地合成场景。双方域别符号见[符号图例](docs/images/symbol-legend.jpg)。
 
+## Windows 便携版
+
+1. 从 [GitHub Release 下载 Windows x64 压缩包](https://github.com/Nuclear2/c5isr-observatory/releases/download/v0.1.0/C5ISR-Observatory-v0.1.0-windows-x64.zip)，选择 **全部解压**，保留目录结构。
+2. 双击解压目录里的 `C5ISR-Observatory.exe`。默认浏览器会打开随包示例，停在 **T+8 · 双节点对照**。点 **下一历史帧** 就能看到中心在 T+9 收到 V2。回放和手动仿真均可离线运行，无需安装 Rust、Node.js 或登录账号。
+3. 点击 **实时态势** 可以在本机开始新实验。使用期间保持程序窗口开启，结束时在该窗口按 `Ctrl+C`。浏览器没有自动弹出时，可以复制程序窗口给出的回放地址打开。
+
+压缩包的 SHA-256 列在 [Release 页面](https://github.com/Nuclear2/c5isr-observatory/releases/tag/v0.1.0)。下载后可在 PowerShell 中运行 `Get-FileHash .\C5ISR-Observatory-v0.1.0-windows-x64.zip` 核对。
+
 ## 快速回放断链补报示例
 
 示例记录了同一份报告在断链前后如何流转。可以先看两个节点在 T+8 各持哪个版本，再向前走一帧核对中心的收件时间。T 表示仿真步。
 
-已启动应用时，点击右上角 **本地回放** 即可。首次克隆若只想看示例，安装 Node.js 24 和 pnpm 11.25.0 后运行以下命令。这个入口只需前端，浏览器在本机读取文件。
+在实时态势界面，点击右上角 **本地回放 → 打开双节点断链补报示例**。首次克隆若只想看示例，安装 Node.js 24 和 pnpm 11.25.0 后运行以下命令。这个入口只需前端，浏览器在本机读取文件。
 
 ```powershell
 git clone https://github.com/Nuclear2/c5isr-observatory.git
@@ -21,9 +29,9 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-打开[本地回放页](http://127.0.0.1:5173/?view=archive)。看完后可在终端按 `Ctrl+C` 停止前端。
+打开[随包示例](http://127.0.0.1:5173/?view=archive&example=two-node)。看完后可在终端按 `Ctrl+C` 停止前端。
 
-1. 点击 **选择实验 JSON**，选取仓库中的 [examples/two-node-replay.json](examples/two-node-replay.json)。这是从验收导出中提取的只读示例，含 T+0 至 T+10 的 11 个公开态势帧，以及对应的决策和收件记录。
+1. 示例含 T+0 至 T+10 的 11 个公开态势帧，以及对应的决策和收件记录。页面自动定位到 T+8，也可点击 **选择实验 JSON** 手动打开同一份[示例归档](examples/two-node-replay.json)，从 T+0 看起。
 2. 把底部时间轴拖到 **T+1**，打开 **决策与报告**。展开空警-700 的 **请求断链节点补充信息 → 冻结依据与执行过程**。批准事件 `#4` 显示 **人工审核**。打开 **查看该事件冻结依据** 可读到批准时引用的链路状态报告 `obs-000008`。
 3. 拖到 **T+8**，打开 **双节点对照**。将 **报告来源** 选为空警-700，**对照版本** 选为 V2（`obs-000013`）。并排查看现场记录席与信息汇聚中心，再点底部的 **下一历史帧** 切到 **T+9**。同一份报告在现场的收件时间是 T+4，在中心是 T+9，相差 5 个仿真步。
 
@@ -66,7 +74,7 @@ Linux/macOS 在安装依赖并执行 `pnpm build` 后，可用 `cargo run --lock
 .\target\debug\c5isr-server.exe
 ```
 
-该程序会使用**编译时的原项目路径**查找 `dist/`、`scripts/` 等资源，模型桥接还需要 `contracts/` 和 Node.js。它不是可单独复制分发的单文件程序；移动项目目录后应在新位置重新构建。
+源码构建的程序在运行时定位工作区并使用其中的 `dist/`，也支持从 exe 同目录加载便携版资源。使用模型桥接需同时提供 `scripts/`、`contracts/`、本机的 Node.js 和已登录的官方 Codex CLI。
 
 也可使用启动脚本；它会检查构建产物，缺失时自动构建：
 
@@ -116,7 +124,8 @@ node scripts/codex-bridge.mjs status
 
 | 可选环境变量 | 用途 |
 |---|---|
-| `C5ISR_PORT` | 后端端口，默认 8787 |
+| `C5ISR_PORT` | 后端监听端口。源码运行默认 8787，便携版默认使用系统分配的空闲端口 |
+| `C5ISR_NO_BROWSER=1` | 启动 Windows 便携版时只在程序窗口显示地址 |
 | `C5ISR_CODEX_PATH` | 官方 Codex 可执行文件路径 |
 | `C5ISR_NODE_PATH` | Node.js 可执行文件路径 |
 | `C5ISR_DISABLE_MODEL=1` | 禁用线上模型，使用规则基线 |

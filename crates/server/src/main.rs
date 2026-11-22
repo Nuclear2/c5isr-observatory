@@ -28,6 +28,7 @@ use tower_http::services::{ServeDir, ServeFile};
 
 #[cfg(test)]
 mod process_tests;
+mod startup;
 #[cfg(test)]
 mod tests;
 
@@ -1129,13 +1130,20 @@ async fn local_boundary(request: Request, next: Next) -> Response {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let manifest = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let root = manifest
-        .parent()
-        .and_then(std::path::Path::parent)
-        .ok_or("workspace root missing")?
-        .to_path_buf();
-    tokio::fs::create_dir_all(root.join("runtime/cancel")).await?;
+    let resources = startup::Resources::locate()?;
+    let root = resources.root;
+    let port = match std::env::var("C5ISR_PORT") {
+        Ok(value) => value.parse::<u16>().map_err(|_| "Invalid C5ISR_PORT")?,
+        Err(std::env::VarError::NotPresent) => {
+            if resources.portable {
+                0
+            } else {
+                8787
+            }
+        }
+        Err(error) => return Err(error.into()),
+    };
+    let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).await?;
     let model_info = if std::env::var("C5ISR_DISABLE_MODEL").as_deref() == Ok("1") {
         Ok(
             json!({"available":false,"detail":"模型调用已由 C5ISR_DISABLE_MODEL=1 禁用；规则基线仍可使用"}),
@@ -1144,6 +1152,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         bridge(&root, "status", None, None).await
     };
     let (available, detail) = match model_info {
+        Ok(info)
+            if info["available"] == true
+                && tokio::fs::create_dir_all(root.join("runtime/cancel"))
+                    .await
+                    .is_err() =>
+        {
+            (
+                false,
+                "无法在程序目录创建模型任务的取消标记目录。".to_owned(),
+            )
+        }
         Ok(info) => (
             info["available"].as_bool().unwrap_or(false),
             info["detail"]
@@ -1188,7 +1207,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let api = Router::new()
         .route(
             "/health",
-            get(|| async { Json(json!({"status":"ok","version":"0.1.0"})) }),
+            get(|| async { Json(json!({"status":"ok","version":env!("CARGO_PKG_VERSION")})) }),
         )
         .route("/state", get(state))
         .route("/events", get(events))
@@ -1208,16 +1227,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .layer(DefaultBodyLimit::max(64 * 1024))
         .layer(middleware::from_fn(local_boundary))
         .with_state(Arc::clone(&app));
-    let port: u16 = std::env::var("C5ISR_PORT")
-        .ok()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(8787);
-    let listener = tokio::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, port)).await?;
-    println!(
-        "C5ISR Observatory: http://127.0.0.1:{}",
-        listener.local_addr()?.port()
-    );
+    let base = format!("http://127.0.0.1:{}", listener.local_addr()?.port());
+    let start_url = if resources.portable {
+        format!("{base}/?view=archive&example=two-node")
+    } else {
+        base
+    };
+    println!("C5ISR Observatory: {start_url}");
     println!("Synthetic data only. Ctrl+C to stop.");
+    #[cfg(windows)]
+    if resources.portable
+        && std::env::var("C5ISR_NO_BROWSER").as_deref() != Ok("1")
+        && let Err(error) = startup::open_browser(&start_url)
+    {
+        eprintln!("Please open the URL above in your browser ({error}).");
+    }
     let stopping = Arc::clone(&app);
     let serving = axum::serve(listener, router)
         .with_graceful_shutdown(async move {

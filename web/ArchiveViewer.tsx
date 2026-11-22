@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, FileJson, History, Layers3, Network, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { parseArchive, MAX_ARCHIVE_BYTES } from './archive';
 import DecisionPanel from './DecisionPanel';
@@ -7,15 +7,42 @@ import SituationMap from './SituationMap';
 import { UnitInspector } from './App';
 
 export default function ArchiveViewer() {
+  const example = new URLSearchParams(window.location.search).get('example');
   const [archive, setArchive] = useState<ReturnType<typeof parseArchive> | null>(null);
   const [filename, setFilename] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(example !== null && example !== 'two-node' ? '找不到指定的回放示例。' : null);
+  const [loading, setLoading] = useState(example === 'two-node');
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [view, setView] = useState<'decisions' | 'inspector' | 'compare'>('decisions');
   const [links, setLinks] = useState(true);
   const [labels, setLabels] = useState(true);
+  useEffect(() => {
+    if (example !== 'two-node') return;
+    const controller = new AbortController();
+    async function openExample() {
+      try {
+        const response = await fetch('/examples/two-node-replay.json', {
+          signal: controller.signal, mode: 'same-origin', credentials: 'omit', redirect: 'error',
+        });
+        if (!response.ok) throw new Error(`读取随包示例失败（HTTP ${response.status}）。`);
+        const parsed = parseArchive(await response.text());
+        if (controller.signal.aborted) return;
+        const start = parsed.history.findIndex(frame => frame.tick === 8);
+        if (start < 0) throw new Error('随包示例缺少 T+8 对照帧。');
+        setArchive(parsed);
+        setFilename('双节点断链补报示例');
+        setIndex(start);
+        setView('compare');
+      } catch (reason) {
+        if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : String(reason));
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+    void openExample();
+    return () => controller.abort();
+  }, [example]);
   const frame = archive?.history[index];
   const unit = frame?.units.find(candidate => candidate.id === selected && (candidate.side === 'blue' || candidate.contact && candidate.contact.first_seen_tick <= frame.tick && candidate.contact.expires_tick > frame.tick));
   const readFile = async (file: File | undefined) => {
@@ -30,10 +57,10 @@ export default function ArchiveViewer() {
     finally { setLoading(false); }
   };
   return <div className="archive-shell">
-    <header className="archive-header"><div><span className="eyebrow">C5ISR / ARCHIVE REPLAY</span><h1>本地实验回放</h1></div><span className="archive-readonly"><ShieldCheck size={14} />只读 · 不连接实时系统</span><label className={`archive-file-button ${loading ? 'loading' : ''}`}><FileJson size={16} />{loading ? '读取中…' : '选择实验 JSON'}<input type="file" accept=".json,application/json" disabled={loading} aria-label="选择本地实验 JSON 文件" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; void readFile(file); }} /></label></header>
+    <header className="archive-header"><div><span className="eyebrow">C5ISR / ARCHIVE REPLAY</span><h1>本地实验回放</h1></div><span className="archive-readonly"><ShieldCheck size={14} />只读 · 不连接实时系统</span><label className={`archive-file-button ${loading ? 'loading' : ''}`}><FileJson size={16} />{loading ? '读取中…' : '选择实验 JSON'}<input type="file" accept=".json,application/json" disabled={loading} aria-label="选择本地实验 JSON 文件" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; void readFile(file); }} /></label><a className="archive-readonly" href="/"><Network size={14} />实时态势</a></header>
     <p className="archive-intro">文件仅在本标签页读取，不上传、不调用模型，也不改变正在运行的实验。{filename && <strong>{filename}</strong>}</p>
     {error && <div className="error-banner" role="alert"><TriangleAlert size={15} /><span>无法载入：{error}</span></div>}
-    {!frame || !archive ? <main className="archive-empty"><History size={46} strokeWidth={1} /><h2>打开已导出的实验记录</h2><p>回看合成态势、冻结报告、人工与 AI 审核和实际送达过程。</p><span>旧版文件可查看已有态势帧；缺失的决策记录会明确标示。</span></main> : <>
+    {!frame || !archive ? <main className="archive-empty"><History size={46} strokeWidth={1} /><h2>{loading ? '正在读取回放' : '打开已导出的实验记录'}</h2><p>回看合成态势、冻结报告、人工与 AI 审核和实际送达过程。</p>{!loading && <a className="archive-readonly" href="/?view=archive&amp;example=two-node"><History size={14} />打开双节点断链补报示例</a>}</main> : <>
       <main className="archive-grid"><section className="archive-map-panel"><div className="map-toolbar"><div className="map-title"><History size={14} /><h2>澄海实验区 · 历史</h2><span className="map-code">T+{frame.tick.toString().padStart(4, '0')}</span></div><div className="map-layer-tools"><button className={`layer-button ${links ? 'active' : ''}`} onClick={() => setLinks(value => !value)} aria-pressed={links}><Network size={14} />链路</button><button className={`layer-button ${labels ? 'active' : ''}`} onClick={() => setLabels(value => !value)} aria-pressed={labels}><Layers3 size={14} />标签</button></div></div><SituationMap frame={frame} history={archive.history} selected={selected} onSelect={id => { setSelected(id); setView('inspector'); }} linksVisible={links} labelsVisible={labels} running={false} /><div className="archive-frame-summary"><span>合成参数 · 虚构区域</span><span>{frame.units.length} 个当时可见节点 · 决策截止 {frame.decision_seq == null ? '未记录' : `#${frame.decision_seq}`}</span></div></section>
         <aside className="archive-decision-panel">
           <div className="decision-tabs with-comparison" role="tablist" aria-label="回放内容">

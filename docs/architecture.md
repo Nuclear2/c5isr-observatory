@@ -131,6 +131,14 @@ SVG 按 SIDC 与颜色缓存；使用库的尺寸与地图锚点等比缩放，�
 
 服务仅监听 127.0.0.1。开发前端通过 Vite 代理，构建后 Rust 直接服务 dist。HTTP 输入限制为 64 KiB；无认证的本地服务不能直接暴露到局域网或互联网。
 
+### Windows 便携版
+
+便携版从可执行文件旁的 `dist/` 加载界面，默认由系统分配回环端口。服务绑定成功后，程序使用 Windows 的 HTTP 默认处理程序打开 `/?view=archive&example=two-node`，控制台同时显示该地址。源码构建继续使用工作区的资源。
+
+Vite 将仓库示例按原始字节写入 `dist/examples/two-node-replay.json`。回放页只为 `two-node` 这个内置名称读取固定的同源文件，通过现有归档解析器载入，初始选中 T+8 的双节点对照。用户也可在同一页打开自己的归档，或进入实时态势。
+
+在安装了前端依赖、x64 Windows GNU Rust 工具链和 binutils 的工作区中，运行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-windows.ps1` 生成 `artifacts/` 下的 ZIP 及 `.sha256` 文件。脚本使用上游许可证文件生成第三方声明，外部 MinGW 工具链可用 `MINGW_RUNTIME_NOTICE` 指定其运行库许可文本。构建时重映射源码路径，打包时只收录清单列出的文件，对实际字节检查本机标识，并逐项核对 ZIP 解压后的哈希。
+
 ## 6. 实验可复现性与边界
 
 同种子、同领域命令序列的数值演化可复现。run_id 用于区分运行实例，服务另加启动标识以区分进程重启，这些标识不参加数值演算。外部模型输出本身不确定，因此导出保存已得到的最终建议与使用量；回看不重新调用模型。
